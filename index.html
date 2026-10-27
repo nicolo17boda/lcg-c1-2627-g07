@@ -2,11 +2,25 @@
 <html lang="it">
 <head>
   <meta charset="utf-8">
-  <title>La Mamma dell'Ammazzadraghi - G07</title>
+  <title>La Mamma dell'Ammazzadraghi</title>
+  <style>
+    @font-face {
+      font-family: "PressStart";
+      src: url("assets/fonts/Jacquard24-Regular.ttf");
+    }
+  </style>
   <script src="lib/phaser.min.js"></script>
   <script src="lib/poliphaser.js"></script>
+  <script src="src/main.js" type="module"></script>
 </head>
 <body>
   <div id="area_gioco" style="text-align:center;"></div>
+  <script>
+    if (location.protocol === "file:") {
+      document.getElementById("area_gioco").textContent =
+        "Avvia python3 -m http.server 8000 nella cartella astro, " +
+        "poi apri http://localhost:8000 per giocare.";
+    }
+  </script>
 </body>
 </html>
