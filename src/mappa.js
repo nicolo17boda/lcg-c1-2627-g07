@@ -1,5 +1,5 @@
 import { LARGHEZZA, ALTEZZA, font as FONT } from "./config.js";
-import { livello_sbloccato } from "./progressi.js";
+import { livello_sbloccato, monete_totali } from "./progressi.js";
 
 const SFONDO = "0x202936";
 const PANNELLO = "0x344252";
@@ -24,6 +24,8 @@ const MERCATO = {
 let messaggio;
 let mercato_bloccato;
 let m_rilasciato;
+let testo_monete;
+let monete_visibili;
 
 function preload(s) {
   for (const nodo of [...LIVELLI, MERCATO]) {
@@ -38,6 +40,9 @@ function create(s) {
     LARGHEZZA, ALTEZZA, SFONDO, 1);
   testo(s, LARGHEZZA / 2, 52, "Mappa di Sussex", 44);
   testo(s, LARGHEZZA / 2, 100, "Scegli la tua prossima tappa", 24);
+  testo_monete = testo(s, 1100, 52, "", 22);
+  monete_visibili = undefined;
+  aggiorna_contatore_monete();
   if (PP.scenes.in_overlay_mode) {
     crea_riprendi(s);
   } else if (PP.game_state.get_variable("mappa_dal_menu") === true) {
@@ -163,6 +168,7 @@ function testo(s, x, y, contenuto, dimensione) {
 }
 
 function update(s) {
+  aggiorna_contatore_monete();
   if (!PP.scenes.in_overlay_mode) return;
   const premuto = PP.interactive.kb.is_key_just_down(s, PP.key_codes.M);
   if (!m_rilasciato) {
@@ -171,6 +177,14 @@ function update(s) {
   }
   if (premuto) riprendi();
 }
+
+function aggiorna_contatore_monete() {
+  const monete = monete_totali();
+  if (monete === monete_visibili) return;
+  monete_visibili = monete;
+  PP.shapes.text_change(testo_monete, "Monete: " + monete);
+}
+
 function destroy(s) {}
 
 PP.scenes.add("mappa", preload, create, update, destroy);

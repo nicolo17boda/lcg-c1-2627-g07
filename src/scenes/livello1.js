@@ -1,4 +1,5 @@
 import { LARGHEZZA, ALTEZZA, font as FONT } from "../config.js";
+import { aggiungi_moneta, monete_totali } from "../progressi.js";
 
 const SPAZIO_INIZIALE = 600;
 const LUNGHEZZA = 3600 + SPAZIO_INIZIALE;
@@ -8,6 +9,7 @@ const L_MEG = 40;
 const A_MEG = 56;
 const L_TOPO = 48;
 const A_TOPO = 22;
+const DIMENSIONE_MONETA = 16;
 const VITA_TOPO = 1;
 const VELOCITA_TOPO = VELOCITA * 1.3;
 const RIMBALZO_TOPO = 600;
@@ -19,7 +21,8 @@ const DISTANZA_ISTRUZIONI = 400 + SPAZIO_INIZIALE;
 const COLORI = {
   sfondo: "0x1D2938", lontano: "0x293A4E", terreno: "0x65768A",
   piattaforma: "0x9AABBA", meg: "0x55DDE0", pericolo: "0xED6672",
-  checkpoint: "0xE9BD68", traguardo: "0x85DB9B", testo: "0xFFFFFF",
+  checkpoint: "0xE9BD68", moneta: "0xF2C94C",
+  traguardo: "0x85DB9B", testo: "0xFFFFFF",
 };
 
 // Tutti gli elementi sono rettangoli: nessun asset grafico da caricare.
@@ -65,6 +68,8 @@ let m_rilasciato = true;
 let topi = [];
 let blocchi_solidi = [];
 let piedi_meg_precedenti;
+let testo_monete;
+let monete_visibili;
 
 function preload(s) {}
 
@@ -90,11 +95,7 @@ function create(s) {
   for (const [x, y, larghezza] of PIATTAFORME) {
     crea_blocco(s, x + SPAZIO_INIZIALE, y, larghezza, 24, COLORI.piattaforma);
   }
-  for (const [x, larghezza] of PERICOLI) {
-    const ostacolo = rettangolo_fisico(s, x + SPAZIO_INIZIALE, SUOLO - 30,
-      larghezza, 30, COLORI.pericolo);
-    PP.physics.add_overlap_f(s, meg, ostacolo, riprova);
-  }
+  
   for (const x of CHECKPOINT) {
     const segnale = rettangolo_fisico(s, x, SUOLO - 90,
       18, 90, COLORI.checkpoint);
@@ -277,6 +278,14 @@ function tocca_topo(s, topo) {
   topo.vita -= 1;
   PP.physics.set_velocity_y(meg, -RIMBALZO_TOPO);
   if (topo.vita === 0) {
+    const moneta = PP.shapes.rectangle_add(s, topo.corpo.geometry.x,
+      topo.corpo.geometry.y - A_TOPO / 2 - DIMENSIONE_MONETA / 2,
+      DIMENSIONE_MONETA, DIMENSIONE_MONETA, COLORI.moneta, 1);
+    PP.physics.add(s, moneta, PP.physics.type.DYNAMIC);
+    PP.physics.set_collision_rectangle(moneta,
+      DIMENSIONE_MONETA, DIMENSIONE_MONETA, 0, 0);
+    for (const blocco of blocchi_solidi) PP.physics.add_collider(s, moneta, blocco);
+    PP.physics.add_overlap_f(s, meg, moneta, () => raccogli_moneta(moneta));
     PP.shapes.destroy(topo.corpo);
     PP.shapes.destroy(topo.barra);
     PP.shapes.destroy(topo.fondo_barra);
@@ -313,6 +322,10 @@ function crea_hud(s) {
     fissa(cuore);
     cuori.push(cuore);
   }
+  testo_monete = testo(s, 1020, 25, "", 20);
+  fissa(testo_monete);
+  monete_visibili = undefined;
+  aggiorna_contatore_monete();
   aggiorna_stato();
   const bottone = PP.shapes.rectangle_add(s, LARGHEZZA - 105, 45,
     170, 52, COLORI.terreno, 1);
@@ -325,6 +338,21 @@ function crea_hud(s) {
   PP.interactive.mouse.add(bottone, "pointerout", () => {
     bottone.visibility.alpha = 1;
   });
+}
+
+function raccogli_moneta(moneta) {
+  if (moneta.raccolta) return;
+  moneta.raccolta = true;
+  aggiungi_moneta();
+  aggiorna_contatore_monete();
+  PP.shapes.destroy(moneta);
+}
+
+function aggiorna_contatore_monete() {
+  const monete = monete_totali();
+  if (monete === monete_visibili) return;
+  monete_visibili = monete;
+  PP.shapes.text_change(testo_monete, "Monete: " + monete);
 }
 
 function aggiorna_stato() {
@@ -348,6 +376,7 @@ function testo(s, x, y, contenuto, dimensione) {
 
 function update(s) {
   if (transizione) return;
+  aggiorna_contatore_monete();
   aggiorna_topi();
   if (istruzioni_visibili && meg.geometry.x >= 140 + DISTANZA_ISTRUZIONI) {
     istruzioni_visibili = false;
