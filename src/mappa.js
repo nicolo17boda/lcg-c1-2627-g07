@@ -1,4 +1,5 @@
 import { LARGHEZZA, ALTEZZA, font as FONT } from "./config.js";
+import { livello_sbloccato } from "./progressi.js";
 
 const SFONDO = "0x202936";
 const PANNELLO = "0x344252";
@@ -35,7 +36,9 @@ function create(s) {
     LARGHEZZA, ALTEZZA, SFONDO, 1);
   testo(s, LARGHEZZA / 2, 52, "Mappa di Sussex", 44);
   testo(s, LARGHEZZA / 2, 100, "Scegli la tua prossima tappa", 24);
-  if (PP.game_state.get_variable("mappa_dal_menu") === true) {
+  if (PP.scenes.in_overlay_mode) {
+    crea_riprendi(s);
+  } else if (PP.game_state.get_variable("mappa_dal_menu") === true) {
     crea_ritorno_menu(s);
   }
   // Consuma la provenienza: un successivo ingresso dai livelli è indipendente.
@@ -51,6 +54,24 @@ function create(s) {
   crea_nodo(s, MERCATO);
   messaggio = testo(s, LARGHEZZA / 2, ALTEZZA - 24,
     mercato_bloccato ? "Per il mercato, torna al portale all'inizio del livello." : "", 22);
+}
+
+function riprendi() {
+  if (!PP.scenes.in_overlay_mode) return;
+  PP.scenes.stop_overlay();
+}
+
+function crea_riprendi(s) {
+  const bottone = PP.shapes.rectangle_add(s, 150, 55,
+    240, 54, PANNELLO, 1);
+  testo(s, 150, 55, "Riprendi", 26);
+  PP.interactive.mouse.add(bottone, "pointerdown", riprendi);
+  PP.interactive.mouse.add(bottone, "pointerover", () => {
+    bottone.visibility.alpha = 0.7;
+  });
+  PP.interactive.mouse.add(bottone, "pointerout", () => {
+    bottone.visibility.alpha = 1;
+  });
 }
 
 function crea_ritorno_menu(s) {
@@ -80,7 +101,9 @@ function crea_collegamento(s, partenza, arrivo) {
 }
 
 function crea_nodo(s, nodo) {
-  const bloccato = nodo.scena === "mercato" && mercato_bloccato;
+  const numero = LIVELLI.indexOf(nodo) + 1;
+  const livello_bloccato = numero > 0 && !livello_sbloccato(numero);
+  const bloccato = livello_bloccato || (nodo.scena === "mercato" && mercato_bloccato);
   const bordo = PP.shapes.rectangle_add(s, nodo.x, nodo.y,
     LATO + 6, LATO + 6, ACCENTO, 1);
   bordo.visibility.alpha = 0.45;
@@ -102,6 +125,13 @@ function crea_nodo(s, nodo) {
     bordo.visibility.alpha = 0.15;
     bottone.visibility.alpha = 0.35;
     etichetta.visibility.alpha = 0.4;
+    if (livello_bloccato) {
+      testo(s, nodo.x, nodo.y, "Bloccato", 20);
+      PP.interactive.mouse.add(bottone, "pointerdown", () => {
+        PP.shapes.text_change(messaggio,
+          "Completa il livello " + (numero - 1) + " per accedere al livello " + numero + ".");
+      });
+    }
     return;
   }
   PP.interactive.mouse.add(bottone, "pointerover", () => {
@@ -111,7 +141,13 @@ function crea_nodo(s, nodo) {
     bordo.visibility.alpha = 0.45;
   });
   PP.interactive.mouse.add(bottone, "pointerdown", () => {
+    if (numero > 0 && !livello_sbloccato(numero)) return;
     if (PP.scenes.list_names.includes(nodo.scena)) {
+      if (PP.scenes.in_overlay_mode) {
+        const stessa_scena = PP.game.current_main_scene_name === nodo.scena;
+        riprendi();
+        if (stessa_scena) return;
+      }
       PP.scenes.start(nodo.scena);
     } else {
       PP.shapes.text_change(messaggio, nodo.nome + " — in preparazione");

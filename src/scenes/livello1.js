@@ -309,18 +309,20 @@ function riprova() {
 function completa() {
   if (transizione) return;
   PP.game_state.set_variable("livello1_completato", true);
-  torna_mappa();
-}
-
-function torna_mappa() {
-  if (transizione) return;
   transizione = true;
-  PP.game_state.set_variable("mappa_da_partita", true);
+  PP.game_state.set_variable("mappa_da_partita", false);
   partenza = 140;
   vite = VITE_MAX;
   istruzioni_visibili = true;
   dialogo_finito = false;
   PP.scenes.start("mappa");
+}
+
+function torna_mappa() {
+  if (transizione || PP.scenes.in_overlay_mode) return;
+  PP.game_state.set_variable("mappa_da_partita", true);
+  // La libreria sospende il livello senza distruggerne posizione e stato.
+  PP.scenes.start_overlay("mappa");
 }
 
 function destroy(s) {
