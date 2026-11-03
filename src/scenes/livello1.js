@@ -1,19 +1,30 @@
 import { LARGHEZZA, ALTEZZA, font as FONT } from "../config.js";
-import { aggiungi_moneta, monete_totali } from "../progressi.js";
+import { aggiungi_moneta, monete_totali, rimuovi_monete } from "../progressi.js";
 
 const SPAZIO_INIZIALE = 600;
 const LUNGHEZZA = 3600 + SPAZIO_INIZIALE;
 const VELOCITA = 340;
 const SALTO = 780;
+const COOLDOWN_DOPPIO_SALTO = 2000;
+let doppio_salto_usato = false;
+let doppio_salto_pronto = true;
+let ricarica_salto = COOLDOWN_DOPPIO_SALTO;
+let barra_salto;
+let etichetta_salto;
+let elementi_hud = [];
+let pannello_istruzioni;
+const X_BARRA_SALTO = 48;
+const L_BARRA_SALTO = 280;
 const L_MEG = 40;
 const A_MEG = 56;
 const L_TOPO = 48;
 const A_TOPO = 22;
 const DIMENSIONE_MONETA = 16;
 const VITA_TOPO = 1;
-const VELOCITA_TOPO = VELOCITA * 1.3;
+const VELOCITA_TOPO = VELOCITA * 1.2;
+const MARGINE_BUCO_TOPO = 20;
 const RIMBALZO_TOPO = 600;
-// Limiti del centro dei topi: lontani da spawn, checkpoint, vuoti e trappole.
+// Posizioni iniziali delle pattuglie, una per ciascun tratto di terreno.
 const PATTUGLIE_TOPI = [[760, 1040], [1980, 2170], [2920, 3100], [3750, 3990]];
 const SUOLO = 620;
 const VITE_MAX = 3;
@@ -38,7 +49,6 @@ const PIATTAFORME = [
   [2070, 510, 150], [2310, 410, 140], [2620, 525, 100],
   [2950, 510, 150], [3180, 410, 140],
 ];
-const PERICOLI = [[530, 60], [1250, 70], [2170, 80], [3010, 80]];
 const CHECKPOINT = [1060, 1940, 2840].map(x => x + SPAZIO_INIZIALE);
 const BATTUTE = [
   ["Amico", "Ehi Meg! Hai visto passare una nuvola quadrata?"],
@@ -63,24 +73,34 @@ let istruzioni_visibili = true;
 let istruzioni;
 let cuori = [];
 let transizione = false;
-let testo_stato;
+let game_over = false;
 let m_rilasciato = true;
 let topi = [];
 let blocchi_solidi = [];
 let piedi_meg_precedenti;
 let testo_monete;
 let monete_visibili;
+// Rimane valido anche passando dalla mappa o dal mercato, fino al Game Over o all’arrivo.
+let monete_tentativo = 0;
 let immagine_cuore;
 let immagine_mappa;
+let immagine_moneta;
+let immagine_topo;
 
 function preload(s) {
   immagine_cuore = PP.assets.image.load(s, "assets/images/cuore.png");
   immagine_mappa = PP.assets.image.load(s, "assets/images/mappa.png");
+  immagine_moneta = PP.assets.image.load(s, "assets/images/moneta.png");
+  immagine_topo = PP.assets.image.load(s, "assets/images/topo.png");
 }
 
 function create(s) {
+  doppio_salto_usato = false;
+  doppio_salto_pronto = true;
+  ricarica_salto = COOLDOWN_DOPPIO_SALTO;
   m_rilasciato = true;
   transizione = false;
+  game_over = false;
   dialogo_attivo = false;
   pannello_dialogo = [];
   topi = [];
@@ -109,7 +129,6 @@ function create(s) {
       if (x > partenza) {
         partenza = x;
         segnale.visibility.alpha = 1;
-        aggiorna_stato();
       }
     });
   }
@@ -227,14 +246,25 @@ function crea_blocco(s, x, y, larghezza, altezza, colore) {
 }
 
 function crea_topi(s) {
-  for (const [minimo, massimo] of PATTUGLIE_TOPI) {
-    const corpo = PP.shapes.rectangle_add(s, (minimo + massimo) / 2,
+  for (const [inizio_pattuglia, fine_pattuglia] of PATTUGLIE_TOPI) {
+    const posizione_iniziale = (inizio_pattuglia + fine_pattuglia) / 2;
+    const terreno = TERRENI.find(([inizio, larghezza]) =>
+      posizione_iniziale >= inizio && posizione_iniziale <= inizio + larghezza);
+    if (!terreno) throw new Error("Pattuglia topo senza terreno sottostante.");
+    const minimo = terreno[0] + L_TOPO / 2 + MARGINE_BUCO_TOPO;
+    const massimo = terreno[0] + terreno[1] - L_TOPO / 2 - MARGINE_BUCO_TOPO;
+    const corpo = PP.shapes.rectangle_add(s, posizione_iniziale,
       SUOLO - A_TOPO / 2, L_TOPO, A_TOPO, "0xBB8A78", 1);
+    const skin = PP.assets.image.add(s, immagine_topo,
+      corpo.geometry.x, corpo.geometry.y - A_TOPO / 2, 0.5, 0.5);
+    skin.geometry.scale_x = L_TOPO / 1001;
+    skin.geometry.scale_y = L_TOPO / 1001;
+    corpo.visibility.alpha = 0;
     PP.physics.add(s, corpo, PP.physics.type.DYNAMIC);
     PP.physics.set_collision_rectangle(corpo, L_TOPO, A_TOPO, 0, 0);
     for (const blocco of blocchi_solidi) PP.physics.add_collider(s, corpo, blocco);
     const topo = {
-      corpo, minimo, massimo, direzione: 1, vita: VITA_TOPO, immune: false,
+      corpo, skin, minimo, massimo, direzione: 1, vita: VITA_TOPO, immune: false,
       fondo_barra: PP.shapes.rectangle_add(s, 0, 0, 48, 8, "0x392C35", 1),
       barra: PP.shapes.rectangle_add(s, 0, 0, 44, 4, "0x85DB9B", 1),
     };
@@ -261,23 +291,32 @@ function aggiorna_topi() {
   for (const topo of topi) {
     if (topo.vita <= 0) continue;
     const x = topo.corpo.geometry.x;
-    if (x >= topo.massimo) topo.direzione = -1;
-    else if (x <= topo.minimo) topo.direzione = 1;
+    let cambia_direzione = false;
+    if (topo.direzione > 0 && x >= topo.massimo) {
+      topo.direzione = -1;
+      cambia_direzione = true;
+    } else if (topo.direzione < 0 && x <= topo.minimo) {
+      topo.direzione = 1;
+      cambia_direzione = true;
+    }
+    if (cambia_direzione) topo.skin.geometry.flip_x = topo.direzione > 0;
     PP.physics.set_velocity_x(topo.corpo,
       dialogo_attivo ? 0 : topo.direzione * VELOCITA_TOPO);
+    topo.skin.geometry.x = topo.corpo.geometry.x;
+    topo.skin.geometry.y = topo.corpo.geometry.y - A_TOPO / 2;
     aggiorna_barra_topo(topo);
   }
   piedi_meg_precedenti = meg.geometry.y + A_MEG / 2;
 }
 
 function tocca_topo(s, topo) {
-  if (transizione || dialogo_attivo || topo.vita <= 0 || topo.immune) return;
+  if (transizione || game_over || dialogo_attivo || topo.vita <= 0 || topo.immune) return;
   const sopra = topo.corpo.geometry.y - A_TOPO / 2;
   const schiacciato = PP.physics.get_velocity_y(meg) > 0
     && piedi_meg_precedenti <= sopra + 8
     && meg.geometry.y < sopra;
   if (!schiacciato) {
-    riprova();
+    riprova(s);
     return;
   }
   topo.vita -= 1;
@@ -292,45 +331,73 @@ function tocca_topo(s, topo) {
     for (const blocco of blocchi_solidi) PP.physics.add_collider(s, moneta, blocco);
     PP.physics.add_overlap_f(s, meg, moneta, () => raccogli_moneta(moneta));
     PP.shapes.destroy(topo.corpo);
+    PP.shapes.destroy(topo.skin);
     PP.shapes.destroy(topo.barra);
     PP.shapes.destroy(topo.fondo_barra);
     return;
   }
   aggiorna_barra_topo(topo);
   topo.immune = true;
-  topo.corpo.visibility.alpha = 0.5;
+  topo.skin.visibility.alpha = 0.5;
   // Evita danni multipli durante la stessa sovrapposizione.
   PP.timers.add_timer(s, 250, () => {
     topo.immune = false;
-    topo.corpo.visibility.alpha = 1;
+    topo.skin.visibility.alpha = 1;
   }, false);
 }
 
 function crea_hud(s) {
-  const fascia = PP.shapes.rectangle_add(s, LARGHEZZA / 2, 48,
-    LARGHEZZA, 96, COLORI.sfondo, 0.95);
-  fissa(fascia);
-  fissa(testo(s, 215, 25, "Meg · Livello 1", 30));
-  istruzioni = testo(s, 485, 65,
-    "← → / A D: muovi · Spazio / ↑ / W: salta · R: ricomincia · M: apri/chiudi mappa", 21);
+  elementi_hud = [];
+  const pannello = PP.shapes.rectangle_add(s, 188, 68,
+    328, 104, COLORI.sfondo, 0.94);
+  const accento = PP.shapes.rectangle_add(s, 26, 68,
+    4, 104, COLORI.meg, 1);
+  const separatore = PP.shapes.rectangle_add(s, 192, 42,
+    2, 30, COLORI.terreno, 0.6);
+  const titolo = testo(s, LARGHEZZA / 2, 38, "Meg · Livello 1", 26);
+  etichetta_salto = testo(s, 188, 76, "", 18);
+  const fondo_salto = PP.shapes.rectangle_add(s, 188, 100,
+    L_BARRA_SALTO + 4, 12, COLORI.terreno, 1);
+  barra_salto = PP.shapes.rectangle_add(s, 188, 100,
+    L_BARRA_SALTO, 8, COLORI.meg, 1);
+  elementi_hud.push(pannello, accento, separatore, titolo,
+    etichetta_salto, fondo_salto, barra_salto);
+  aggiorna_barra_salto();
+  // Il timer della scena si sospende insieme al livello quando si apre la mappa.
+  PP.timers.add_timer(s, 50, () => {
+    if (game_over || transizione) return;
+    if (!doppio_salto_pronto) {
+      ricarica_salto = Math.min(COOLDOWN_DOPPIO_SALTO, ricarica_salto + 50);
+    }
+    aggiorna_barra_salto();
+  }, true);
+  pannello_istruzioni = PP.shapes.rectangle_add(s, 524, 63,
+    1000, 94, COLORI.sfondo, 0.94);
+  istruzioni = testo(s, 524, 63,
+    "← → / A D  Muovi     Spazio / ↑ / W  Doppio salto (2 s)\nR  Ricomincia     M  Apri / chiudi mappa", 23);
+  fissa(pannello_istruzioni);
   fissa(istruzioni);
-  istruzioni.visibility.hidden = !istruzioni_visibili;
-  testo_stato = testo(s, 640, 25, "", 23);
-  fissa(testo_stato);
   cuori = [];
   for (let i = 0; i < VITE_MAX; i++) {
     const cuore = PP.assets.image.add(s, immagine_cuore,
-      850 + i * 44, 28, 0.5, 0.5);
+      64 + i * 44, 42, 0.5, 0.5);
     cuore.geometry.scale_x = 0.032;
     cuore.geometry.scale_y = 0.032;
-    fissa(cuore);
     cuori.push(cuore);
+    elementi_hud.push(cuore);
   }
-  testo_monete = testo(s, 1020, 25, "", 20);
-  fissa(testo_monete);
+  // Il disegno occupa circa 280 px dei 1001 px del file: a questa scala
+  // appare alto circa 31 px, come i cuori. Compensa anche i margini asimmetrici.
+  const icona_moneta = PP.assets.image.add(s, immagine_moneta, 238, 45, 0.5, 0.5);
+  icona_moneta.geometry.scale_x = 0.112;
+  icona_moneta.geometry.scale_y = 0.112;
+  testo_monete = testo(s, 290, 42, "", 30);
+  elementi_hud.push(icona_moneta, testo_monete);
+  for (const elemento of elementi_hud) fissa(elemento);
+  aggiorna_visibilita_hud();
   monete_visibili = undefined;
   aggiorna_contatore_monete();
-  aggiorna_stato();
+  aggiorna_cuori();
   const bottone = PP.shapes.rectangle_add(s, LARGHEZZA - 105, 45,
     170, 52, COLORI.terreno, 1);
   fissa(bottone);
@@ -339,7 +406,7 @@ function crea_hud(s) {
   icona_mappa.geometry.scale_x = 0.09;
   icona_mappa.geometry.scale_y = 0.09;
   fissa(icona_mappa);
-  fissa(testo(s, 1195, 45, "Mappa", 23));
+  fissa(testo(s, 1195, 45, "Mappa [M]", 21));
   PP.interactive.mouse.add(bottone, "pointerdown", torna_mappa);
   PP.interactive.mouse.add(bottone, "pointerover", () => {
     bottone.visibility.alpha = 0.7;
@@ -349,25 +416,37 @@ function crea_hud(s) {
   });
 }
 
+function aggiorna_visibilita_hud() {
+  istruzioni.visibility.hidden = !istruzioni_visibili;
+  pannello_istruzioni.visibility.hidden = !istruzioni_visibili;
+  for (const elemento of elementi_hud) {
+    elemento.visibility.hidden = istruzioni_visibili;
+  }
+}
+
 function raccogli_moneta(moneta) {
-  if (moneta.raccolta) return;
+  if (transizione || game_over || moneta.raccolta) return;
   moneta.raccolta = true;
   aggiungi_moneta();
+  monete_tentativo += 1;
   aggiorna_contatore_monete();
   PP.shapes.destroy(moneta);
+}
+
+function perdi_monete_tentativo() {
+  rimuovi_monete(monete_tentativo);
+  monete_tentativo = 0;
+  aggiorna_contatore_monete();
 }
 
 function aggiorna_contatore_monete() {
   const monete = monete_totali();
   if (monete === monete_visibili) return;
   monete_visibili = monete;
-  PP.shapes.text_change(testo_monete, "Monete: " + monete);
+  PP.shapes.text_change(testo_monete, String(monete));
 }
 
-function aggiorna_stato() {
-  const raggiunti = CHECKPOINT.filter(x => x <= partenza).length;
-  PP.shapes.text_change(testo_stato,
-    "Checkpoint " + raggiunti + "/3");
+function aggiorna_cuori() {
   for (let i = 0; i < cuori.length; i++) {
     cuori[i].visibility.alpha = i < vite ? 1 : 0.2;
   }
@@ -384,12 +463,12 @@ function testo(s, x, y, contenuto, dimensione) {
 }
 
 function update(s) {
-  if (transizione) return;
+  if (transizione || game_over) return;
   aggiorna_contatore_monete();
   aggiorna_topi();
   if (istruzioni_visibili && meg.geometry.x >= 140 + DISTANZA_ISTRUZIONI) {
     istruzioni_visibili = false;
-    istruzioni.visibility.hidden = true;
+    aggiorna_visibilita_hud();
   }
   const tasti = PP.key_codes;
   const premuto = tasto => PP.interactive.kb.is_key_down(s, tasto);
@@ -402,12 +481,7 @@ function update(s) {
     return;
   }
   if (appena(tasti.R)) {
-    partenza = 140;
-    vite = VITE_MAX;
-    istruzioni_visibili = true;
-    dialogo_finito = false;
-    transizione = true;
-    PP.scenes.start("livello1");
+    ricomincia();
     return;
   }
   if (dialogo_attivo) {
@@ -418,27 +492,89 @@ function update(s) {
   const destra = premuto(tasti.RIGHT) || premuto(tasti.D);
   PP.physics.set_velocity_x(meg, (Number(destra) - Number(sinistra)) * VELOCITA);
   const salto = appena(tasti.SPACE) || appena(tasti.UP) || appena(tasti.W);
-  if (salto && PP.physics.is_on_ground(meg)) {
-    PP.physics.set_velocity_y(meg, -SALTO);
-  }
-  if (meg.geometry.y > ALTEZZA + A_MEG) riprova();
+  gestisci_salto(s, salto);
+  if (meg.geometry.y > ALTEZZA + A_MEG) riprova(s);
 }
 
-function riprova() {
-  if (transizione) return;
-  transizione = true;
+function aggiorna_barra_salto() {
+  const frazione = doppio_salto_pronto ? 1 : ricarica_salto / COOLDOWN_DOPPIO_SALTO;
+  barra_salto.geometry.scale_x = frazione;
+  barra_salto.geometry.x = X_BARRA_SALTO + L_BARRA_SALTO / 2 * frazione;
+  const stato = doppio_salto_pronto
+    ? (doppio_salto_usato ? "atterra" : "pronto")
+    : ((COOLDOWN_DOPPIO_SALTO - ricarica_salto) / 1000).toFixed(1) + " s";
+  PP.shapes.text_change(etichetta_salto, "Doppio salto: " + stato);
+}
+
+function gestisci_salto(s, salto) {
+  const a_terra = PP.physics.is_on_ground(meg);
+  if (a_terra) doppio_salto_usato = false;
+  if (!salto) return;
+  if (a_terra) {
+    PP.physics.set_velocity_y(meg, -SALTO);
+  } else if (!doppio_salto_usato && doppio_salto_pronto) {
+    doppio_salto_usato = true;
+    doppio_salto_pronto = false;
+    ricarica_salto = 0;
+    aggiorna_barra_salto();
+    PP.physics.set_velocity_y(meg, -SALTO);
+    PP.timers.add_timer(s, COOLDOWN_DOPPIO_SALTO, () => {
+      doppio_salto_pronto = true;
+      ricarica_salto = COOLDOWN_DOPPIO_SALTO;
+      aggiorna_barra_salto();
+    }, false);
+  }
+}
+
+function riprova(s) {
+  if (transizione || game_over) return;
   vite -= 1;
   if (vite === 0) {
-    partenza = 140;
-    vite = VITE_MAX;
-    istruzioni_visibili = true;
-    dialogo_finito = false;
+    perdi_monete_tentativo();
+    game_over = true;
+    PP.physics.set_velocity_x(meg, 0);
+    PP.physics.set_velocity_y(meg, 0);
+    PP.physics.set_allow_gravity(meg, false);
+    aggiorna_cuori();
+    crea_game_over(s);
+    return;
   }
+  transizione = true;
+  PP.scenes.start("livello1");
+}
+
+function crea_game_over(s) {
+  const pannello = PP.shapes.rectangle_add(s, LARGHEZZA / 2, ALTEZZA / 2,
+    560, 260, COLORI.sfondo, 0.96);
+  const titolo = testo(s, LARGHEZZA / 2, ALTEZZA / 2 - 60, "Game Over", 56);
+  const bottone = PP.shapes.rectangle_add(s, LARGHEZZA / 2, ALTEZZA / 2 + 55,
+    240, 64, COLORI.terreno, 1);
+  const etichetta = testo(s, LARGHEZZA / 2, ALTEZZA / 2 + 55, "Ricomincia", 32);
+  for (const elemento of [pannello, titolo, bottone, etichetta]) fissa(elemento);
+  PP.interactive.mouse.add(bottone, "pointerdown", ricomincia);
+  PP.interactive.mouse.add(bottone, "pointerover", () => {
+    bottone.visibility.alpha = 0.7;
+  });
+  PP.interactive.mouse.add(bottone, "pointerout", () => {
+    bottone.visibility.alpha = 1;
+  });
+}
+
+function ricomincia() {
+  if (transizione) return;
+  partenza = 140;
+  vite = VITE_MAX;
+  istruzioni_visibili = true;
+  dialogo_finito = false;
+  game_over = false;
+  transizione = true;
   PP.scenes.start("livello1");
 }
 
 function completa() {
-  if (transizione) return;
+  if (transizione || game_over) return;
+  // Le monete del tentativo diventano definitive soltanto raggiungendo l'arrivo.
+  monete_tentativo = 0;
   PP.game_state.set_variable("livello1_completato", true);
   transizione = true;
   PP.game_state.set_variable("mappa_da_partita", false);

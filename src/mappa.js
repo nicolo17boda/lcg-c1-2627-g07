@@ -27,12 +27,14 @@ let m_rilasciato;
 let testo_monete;
 let monete_visibili;
 let immagine_mappa;
+let immagine_moneta;
 
 function preload(s) {
   for (const nodo of [...LIVELLI, MERCATO]) {
     nodo.immagine = nodo.icona ? PP.assets.image.load(s, nodo.icona) : null;
   }
   immagine_mappa = PP.assets.image.load(s, "assets/images/mappa.png");
+  immagine_moneta = PP.assets.image.load(s, "assets/images/moneta.png");
 }
 
 function create(s) {
@@ -45,7 +47,10 @@ function create(s) {
   icona_mappa.geometry.scale_x = 0.14;
   icona_mappa.geometry.scale_y = 0.14;
   testo(s, LARGHEZZA / 2, 100, "Scegli la tua prossima tappa", 24);
-  testo_monete = testo(s, 1100, 52, "", 22);
+  const icona_moneta = PP.assets.image.add(s, immagine_moneta, 1035, 52, 0.5, 0.5);
+  icona_moneta.geometry.scale_x = 0.064;
+  icona_moneta.geometry.scale_y = 0.064;
+  testo_monete = testo(s, 1085, 52, "", 34);
   monete_visibili = undefined;
   aggiorna_contatore_monete();
   if (PP.scenes.in_overlay_mode) {
@@ -187,7 +192,7 @@ function aggiorna_contatore_monete() {
   const monete = monete_totali();
   if (monete === monete_visibili) return;
   monete_visibili = monete;
-  PP.shapes.text_change(testo_monete, "Monete: " + monete);
+  PP.shapes.text_change(testo_monete, String(monete));
 }
 
 function destroy(s) {}

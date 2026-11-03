@@ -31,3 +31,10 @@ export function aggiungi_moneta() {
   PP.game_state.set_variable("monete", monete);
   return monete;
 }
+
+export function rimuovi_monete(quantita) {
+  if (!Number.isInteger(quantita) || quantita < 0) return monete_totali();
+  const monete = Math.max(0, monete_totali() - quantita);
+  PP.game_state.set_variable("monete", monete);
+  return monete;
+}
