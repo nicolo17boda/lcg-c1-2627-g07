@@ -23,6 +23,7 @@ const MERCATO = {
 
 let messaggio;
 let mercato_bloccato;
+let m_rilasciato;
 
 function preload(s) {
   for (const nodo of [...LIVELLI, MERCATO]) {
@@ -31,6 +32,7 @@ function preload(s) {
 }
 
 function create(s) {
+  m_rilasciato = false;
   mercato_bloccato = PP.game_state.get_variable("mappa_da_partita") === true;
   PP.shapes.rectangle_add(s, LARGHEZZA / 2, ALTEZZA / 2,
     LARGHEZZA, ALTEZZA, SFONDO, 1);
@@ -64,7 +66,7 @@ function riprendi() {
 function crea_riprendi(s) {
   const bottone = PP.shapes.rectangle_add(s, 150, 55,
     240, 54, PANNELLO, 1);
-  testo(s, 150, 55, "Riprendi", 26);
+  testo(s, 150, 55, "Riprendi (M)", 26);
   PP.interactive.mouse.add(bottone, "pointerdown", riprendi);
   PP.interactive.mouse.add(bottone, "pointerover", () => {
     bottone.visibility.alpha = 0.7;
@@ -160,7 +162,15 @@ function testo(s, x, y, contenuto, dimensione) {
     dimensione, FONT, "normal", TESTO, null, 0.5, 0.5);
 }
 
-function update(s) {}
+function update(s) {
+  if (!PP.scenes.in_overlay_mode) return;
+  const premuto = PP.interactive.kb.is_key_just_down(s, PP.key_codes.M);
+  if (!m_rilasciato) {
+    m_rilasciato = PP.interactive.kb.is_key_up(s, PP.key_codes.M);
+    return;
+  }
+  if (premuto) riprendi();
+}
 function destroy(s) {}
 
 PP.scenes.add("mappa", preload, create, update, destroy);

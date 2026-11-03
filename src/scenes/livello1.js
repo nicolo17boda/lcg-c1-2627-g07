@@ -6,6 +6,13 @@ const VELOCITA = 340;
 const SALTO = 780;
 const L_MEG = 40;
 const A_MEG = 56;
+const L_TOPO = 48;
+const A_TOPO = 22;
+const VITA_TOPO = 1;
+const VELOCITA_TOPO = VELOCITA * 1.3;
+const RIMBALZO_TOPO = 600;
+// Limiti del centro dei topi: lontani da spawn, checkpoint, vuoti e trappole.
+const PATTUGLIE_TOPI = [[760, 1040], [1980, 2170], [2920, 3100], [3750, 3990]];
 const SUOLO = 620;
 const VITE_MAX = 3;
 const DISTANZA_ISTRUZIONI = 400 + SPAZIO_INIZIALE;
@@ -54,13 +61,21 @@ let istruzioni;
 let cuori = [];
 let transizione = false;
 let testo_stato;
+let m_rilasciato = true;
+let topi = [];
+let blocchi_solidi = [];
+let piedi_meg_precedenti;
 
 function preload(s) {}
 
 function create(s) {
+  m_rilasciato = true;
   transizione = false;
   dialogo_attivo = false;
   pannello_dialogo = [];
+  topi = [];
+  blocchi_solidi = [];
+  piedi_meg_precedenti = SUOLO;
   crea_sfondo(s);
   meg = PP.shapes.rectangle_add(s, partenza, SUOLO - A_MEG / 2,
     L_MEG, A_MEG, COLORI.meg, 1);
@@ -97,6 +112,7 @@ function create(s) {
   PP.physics.add_overlap_f(s, meg, arrivo, completa);
   testo(s, 3504 + SPAZIO_INIZIALE, SUOLO - 145, "Arrivo", 24);
 
+  crea_topi(s);
   PP.camera.set_bounds(s, 0, 0, LUNGHEZZA, ALTEZZA);
   PP.camera.start_follow(s, meg, -180, 0);
   crea_portale_mercato(s);
@@ -123,7 +139,7 @@ function crea_portale_mercato(s) {
 function crea_amico(s) {
   PP.shapes.rectangle_add(s, 440, SUOLO - 32,
     44, 64, COLORI.checkpoint, 1);
-  testo(s, 440, SUOLO - 90, "Amico", 24);
+  testo(s, 440, SUOLO - 90, "Venditrice", 24);
   const zona = rettangolo_fisico(s, 310, SUOLO - 240,
     250, 240, COLORI.checkpoint);
   zona.visibility.alpha = 0;
@@ -201,6 +217,79 @@ function rettangolo_fisico(s, x, y, larghezza, altezza, colore) {
 function crea_blocco(s, x, y, larghezza, altezza, colore) {
   const blocco = rettangolo_fisico(s, x, y, larghezza, altezza, colore);
   PP.physics.add_collider(s, meg, blocco);
+  blocchi_solidi.push(blocco);
+}
+
+function crea_topi(s) {
+  for (const [minimo, massimo] of PATTUGLIE_TOPI) {
+    const corpo = PP.shapes.rectangle_add(s, (minimo + massimo) / 2,
+      SUOLO - A_TOPO / 2, L_TOPO, A_TOPO, "0xBB8A78", 1);
+    PP.physics.add(s, corpo, PP.physics.type.DYNAMIC);
+    PP.physics.set_collision_rectangle(corpo, L_TOPO, A_TOPO, 0, 0);
+    for (const blocco of blocchi_solidi) PP.physics.add_collider(s, corpo, blocco);
+    const topo = {
+      corpo, minimo, massimo, direzione: 1, vita: VITA_TOPO, immune: false,
+      fondo_barra: PP.shapes.rectangle_add(s, 0, 0, 48, 8, "0x392C35", 1),
+      barra: PP.shapes.rectangle_add(s, 0, 0, 44, 4, "0x85DB9B", 1),
+    };
+    topi.push(topo);
+    aggiorna_barra_topo(topo);
+    PP.physics.set_velocity_x(corpo, VELOCITA_TOPO);
+    PP.physics.add_overlap_f(s, meg, corpo, () => tocca_topo(s, topo));
+  }
+}
+
+function aggiorna_barra_topo(topo) {
+  const frazione = topo.vita / VITA_TOPO;
+  const x = topo.corpo.geometry.x;
+  const y = topo.corpo.geometry.y - A_TOPO / 2 - 12;
+  topo.fondo_barra.geometry.x = x;
+  topo.fondo_barra.geometry.y = y;
+  topo.barra.geometry.scale_x = frazione;
+  // La salute si svuota da destra mantenendo fisso il margine sinistro.
+  topo.barra.geometry.x = x - 22 + 22 * frazione;
+  topo.barra.geometry.y = y;
+}
+
+function aggiorna_topi() {
+  for (const topo of topi) {
+    if (topo.vita <= 0) continue;
+    const x = topo.corpo.geometry.x;
+    if (x >= topo.massimo) topo.direzione = -1;
+    else if (x <= topo.minimo) topo.direzione = 1;
+    PP.physics.set_velocity_x(topo.corpo,
+      dialogo_attivo ? 0 : topo.direzione * VELOCITA_TOPO);
+    aggiorna_barra_topo(topo);
+  }
+  piedi_meg_precedenti = meg.geometry.y + A_MEG / 2;
+}
+
+function tocca_topo(s, topo) {
+  if (transizione || dialogo_attivo || topo.vita <= 0 || topo.immune) return;
+  const sopra = topo.corpo.geometry.y - A_TOPO / 2;
+  const schiacciato = PP.physics.get_velocity_y(meg) > 0
+    && piedi_meg_precedenti <= sopra + 8
+    && meg.geometry.y < sopra;
+  if (!schiacciato) {
+    riprova();
+    return;
+  }
+  topo.vita -= 1;
+  PP.physics.set_velocity_y(meg, -RIMBALZO_TOPO);
+  if (topo.vita === 0) {
+    PP.shapes.destroy(topo.corpo);
+    PP.shapes.destroy(topo.barra);
+    PP.shapes.destroy(topo.fondo_barra);
+    return;
+  }
+  aggiorna_barra_topo(topo);
+  topo.immune = true;
+  topo.corpo.visibility.alpha = 0.5;
+  // Evita danni multipli durante la stessa sovrapposizione.
+  PP.timers.add_timer(s, 250, () => {
+    topo.immune = false;
+    topo.corpo.visibility.alpha = 1;
+  }, false);
 }
 
 function crea_hud(s) {
@@ -209,7 +298,7 @@ function crea_hud(s) {
   fissa(fascia);
   fissa(testo(s, 215, 25, "Meg · Livello 1", 30));
   istruzioni = testo(s, 485, 65,
-    "← → / A D: muovi   ·   Spazio / ↑ / W: salta   ·   R: ricomincia", 23);
+    "← → / A D: muovi · Spazio / ↑ / W: salta · R: ricomincia · M: apri/chiudi mappa", 21);
   fissa(istruzioni);
   istruzioni.visibility.hidden = !istruzioni_visibili;
   testo_stato = testo(s, 640, 25, "", 23);
@@ -259,6 +348,7 @@ function testo(s, x, y, contenuto, dimensione) {
 
 function update(s) {
   if (transizione) return;
+  aggiorna_topi();
   if (istruzioni_visibili && meg.geometry.x >= 140 + DISTANZA_ISTRUZIONI) {
     istruzioni_visibili = false;
     istruzioni.visibility.hidden = true;
@@ -266,7 +356,10 @@ function update(s) {
   const tasti = PP.key_codes;
   const premuto = tasto => PP.interactive.kb.is_key_down(s, tasto);
   const appena = tasto => PP.interactive.kb.is_key_just_down(s, tasto);
-  if (appena(tasti.ESC)) {
+  const m_premuto = appena(tasti.M);
+  const apri_con_m = m_rilasciato && m_premuto;
+  if (!m_rilasciato && !premuto(tasti.M)) m_rilasciato = true;
+  if (apri_con_m || appena(tasti.ESC)) {
     torna_mappa();
     return;
   }
@@ -320,6 +413,8 @@ function completa() {
 
 function torna_mappa() {
   if (transizione || PP.scenes.in_overlay_mode) return;
+  // Ignora il tasto usato per chiudere la mappa finché non viene rilasciato.
+  m_rilasciato = false;
   PP.game_state.set_variable("mappa_da_partita", true);
   // La libreria sospende il livello senza distruggerne posizione e stato.
   PP.scenes.start_overlay("mappa");
