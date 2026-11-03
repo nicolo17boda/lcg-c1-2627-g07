@@ -135,3 +135,4 @@ export function nuovo_livello(livello) {
   PP.game_state.set_variable("checkpoint", X_PARTENZA);
   PP.scenes.start(livello);
 }
+
