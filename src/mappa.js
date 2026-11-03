@@ -21,6 +21,7 @@ const MERCATO = {
 };
 
 let messaggio;
+let mercato_bloccato;
 
 function preload(s) {
   for (const nodo of [...LIVELLI, MERCATO]) {
@@ -29,6 +30,7 @@ function preload(s) {
 }
 
 function create(s) {
+  mercato_bloccato = PP.game_state.get_variable("mappa_da_partita") === true;
   PP.shapes.rectangle_add(s, LARGHEZZA / 2, ALTEZZA / 2,
     LARGHEZZA, ALTEZZA, SFONDO, 1);
   testo(s, LARGHEZZA / 2, 52, "Mappa di Sussex", 44);
@@ -47,7 +49,8 @@ function create(s) {
     crea_nodo(s, nodo);
   }
   crea_nodo(s, MERCATO);
-  messaggio = testo(s, LARGHEZZA / 2, ALTEZZA - 24, "", 22);
+  messaggio = testo(s, LARGHEZZA / 2, ALTEZZA - 24,
+    mercato_bloccato ? "Per il mercato, torna al portale all'inizio del livello." : "", 22);
 }
 
 function crea_ritorno_menu(s) {
@@ -77,6 +80,7 @@ function crea_collegamento(s, partenza, arrivo) {
 }
 
 function crea_nodo(s, nodo) {
+  const bloccato = nodo.scena === "mercato" && mercato_bloccato;
   const bordo = PP.shapes.rectangle_add(s, nodo.x, nodo.y,
     LATO + 6, LATO + 6, ACCENTO, 1);
   bordo.visibility.alpha = 0.45;
@@ -93,7 +97,13 @@ function crea_nodo(s, nodo) {
     icona.geometry.scale_x = scala;
     icona.geometry.scale_y = scala;
   }
-  testo(s, nodo.x, nodo.y + LATO / 2 + 20, nodo.nome, 26);
+  const etichetta = testo(s, nodo.x, nodo.y + LATO / 2 + 20, nodo.nome, 26);
+  if (bloccato) {
+    bordo.visibility.alpha = 0.15;
+    bottone.visibility.alpha = 0.35;
+    etichetta.visibility.alpha = 0.4;
+    return;
+  }
   PP.interactive.mouse.add(bottone, "pointerover", () => {
     bordo.visibility.alpha = 1;
   });

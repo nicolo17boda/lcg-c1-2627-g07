@@ -33,6 +33,7 @@ function create(s) {
   crea_bottone(s, 370, "Storia", () => PP.scenes.start("storia"));
   crea_bottone(s, 475, "Gioca", () => {
     PP.game_state.set_variable("mappa_dal_menu", true);
+    PP.game_state.set_variable("mappa_da_partita", false);
     PP.scenes.start("mappa");
   });
 }
