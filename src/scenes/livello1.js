@@ -70,8 +70,11 @@ let blocchi_solidi = [];
 let piedi_meg_precedenti;
 let testo_monete;
 let monete_visibili;
+let immagine_cuore;
 
-function preload(s) {}
+function preload(s) {
+  immagine_cuore = PP.assets.image.load(s, "assets/images/cuore.png");
+}
 
 function create(s) {
   m_rilasciato = true;
@@ -313,12 +316,11 @@ function crea_hud(s) {
   testo_stato = testo(s, 640, 25, "", 23);
   fissa(testo_stato);
   cuori = [];
-  // Cuori geometrici: nessuna immagine o font speciale necessario.
-  const punti = [16, 7, 10, 0, 4, 0, 0, 6, 0, 14,
-    16, 30, 32, 14, 32, 6, 28, 0, 22, 0];
   for (let i = 0; i < VITE_MAX; i++) {
-    const cuore = PP.shapes.polygon_add(s, 850 + i * 44, 28,
-      punti, COLORI.pericolo, 1);
+    const cuore = PP.assets.image.add(s, immagine_cuore,
+      850 + i * 44, 28, 0.5, 0.5);
+    cuore.geometry.scale_x = 0.032;
+    cuore.geometry.scale_y = 0.032;
     fissa(cuore);
     cuori.push(cuore);
   }
