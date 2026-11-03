@@ -31,8 +31,13 @@ function preload(s) {
 function create(s) {
   PP.shapes.rectangle_add(s, LARGHEZZA / 2, ALTEZZA / 2,
     LARGHEZZA, ALTEZZA, SFONDO, 1);
-  testo(s, LARGHEZZA / 2, 52, "MAPPA DEI LIVELLI", 44);
+  testo(s, LARGHEZZA / 2, 52, "Mappa di Sussex", 44);
   testo(s, LARGHEZZA / 2, 100, "Scegli la tua prossima tappa", 24);
+  if (PP.game_state.get_variable("mappa_dal_menu") === true) {
+    crea_ritorno_menu(s);
+  }
+  // Consuma la provenienza: un successivo ingresso dai livelli è indipendente.
+  PP.game_state.set_variable("mappa_dal_menu", false);
 
   // Il percorso collega soltanto i quattro livelli, in ordine.
   for (let i = 0; i < LIVELLI.length - 1; i++) {
@@ -43,6 +48,21 @@ function create(s) {
   }
   crea_nodo(s, MERCATO);
   messaggio = testo(s, LARGHEZZA / 2, ALTEZZA - 24, "", 22);
+}
+
+function crea_ritorno_menu(s) {
+  const bottone = PP.shapes.rectangle_add(s, 150, 55,
+    240, 54, PANNELLO, 1);
+  testo(s, 150, 55, "← Torna al menu", 26);
+  PP.interactive.mouse.add(bottone, "pointerdown", () => {
+    PP.scenes.start("menu");
+  });
+  PP.interactive.mouse.add(bottone, "pointerover", () => {
+    bottone.visibility.alpha = 0.7;
+  });
+  PP.interactive.mouse.add(bottone, "pointerout", () => {
+    bottone.visibility.alpha = 1;
+  });
 }
 
 function crea_collegamento(s, partenza, arrivo) {

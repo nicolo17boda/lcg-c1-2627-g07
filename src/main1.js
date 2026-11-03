@@ -1,4 +1,5 @@
 import {LARGHEZZA, ALTEZZA, font as FONT} from "./config.js";
+import "./menu.js";
 import "./mappa.js";
 import "./scenes/livello1.js";
 import "./scenes/livello2.js";
