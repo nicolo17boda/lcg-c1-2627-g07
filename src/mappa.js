@@ -26,11 +26,13 @@ let mercato_bloccato;
 let m_rilasciato;
 let testo_monete;
 let monete_visibili;
+let immagine_mappa;
 
 function preload(s) {
   for (const nodo of [...LIVELLI, MERCATO]) {
     nodo.immagine = nodo.icona ? PP.assets.image.load(s, nodo.icona) : null;
   }
+  immagine_mappa = PP.assets.image.load(s, "assets/images/mappa.png");
 }
 
 function create(s) {
@@ -38,7 +40,10 @@ function create(s) {
   mercato_bloccato = PP.game_state.get_variable("mappa_da_partita") === true;
   PP.shapes.rectangle_add(s, LARGHEZZA / 2, ALTEZZA / 2,
     LARGHEZZA, ALTEZZA, SFONDO, 1);
-  testo(s, LARGHEZZA / 2, 52, "Mappa di Sussex", 44);
+  testo(s, 675, 52, "Mappa di Sussex", 44);
+  const icona_mappa = PP.assets.image.add(s, immagine_mappa, 475, 52, 0.5, 0.5);
+  icona_mappa.geometry.scale_x = 0.14;
+  icona_mappa.geometry.scale_y = 0.14;
   testo(s, LARGHEZZA / 2, 100, "Scegli la tua prossima tappa", 24);
   testo_monete = testo(s, 1100, 52, "", 22);
   monete_visibili = undefined;

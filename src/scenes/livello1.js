@@ -71,9 +71,11 @@ let piedi_meg_precedenti;
 let testo_monete;
 let monete_visibili;
 let immagine_cuore;
+let immagine_mappa;
 
 function preload(s) {
   immagine_cuore = PP.assets.image.load(s, "assets/images/cuore.png");
+  immagine_mappa = PP.assets.image.load(s, "assets/images/mappa.png");
 }
 
 function create(s) {
@@ -332,7 +334,12 @@ function crea_hud(s) {
   const bottone = PP.shapes.rectangle_add(s, LARGHEZZA - 105, 45,
     170, 52, COLORI.terreno, 1);
   fissa(bottone);
-  fissa(testo(s, LARGHEZZA - 105, 45, "Alla mappa", 25));
+  const icona_mappa = PP.assets.image.add(s, immagine_mappa,
+    1135, 45, 0.5, 0.5);
+  icona_mappa.geometry.scale_x = 0.09;
+  icona_mappa.geometry.scale_y = 0.09;
+  fissa(icona_mappa);
+  fissa(testo(s, 1195, 45, "Mappa", 23));
   PP.interactive.mouse.add(bottone, "pointerdown", torna_mappa);
   PP.interactive.mouse.add(bottone, "pointerover", () => {
     bottone.visibility.alpha = 0.7;
