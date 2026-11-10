@@ -1,9 +1,9 @@
 import { LARGHEZZA, ALTEZZA } from "../config.js";
 import { aggiungi_moneta, monete_totali, rimuovi_monete, completa_livello, livello_sbloccato } from "../progressi.js";
-import { L_MEG, A_MEG, A_TOPO, DIMENSIONE_MONETA, RIMBALZO_TOPO, VITE_MAX, COLORI } from "./config.js";
+import { L_MEG, A_MEG, DIMENSIONE_MONETA, RIMBALZO_TOPO, VITE_MAX, COLORI } from "./config.js";
 import { rettangolo_fisico, fissa, testo } from "./grafica.js";
 import { crea_abilita_meg } from "./abilita_meg.js";
-import { crea_nemici } from "./nemici.js";
+import { crea_nemici, scegli_topi_grandi } from "./nemici.js";
 import { crea_monete } from "./monete.js";
 import { crea_dialogo } from "./dialogo.js";
 import { crea_hud, crea_game_over } from "./hud.js";
@@ -26,6 +26,7 @@ export function registra_livello(config) {
   let m_rilasciato = true;
   let blocchi_solidi = [], cancelli = [];
   let piedi_meg_precedenti;
+  let topi_grandi = null;
   let monete_tentativo = 0;
   const arene_superate = new Set();
   const reliquie_raccolte = new Set();
@@ -34,7 +35,7 @@ export function registra_livello(config) {
   const bloccato = () => transizione || game_over || Boolean(dialogo?.attivo);
 
   function preload(s) {
-    for (const nome of ["cuore", "mappa", "moneta", "topo"]) {
+    for (const nome of ["cuore", "mappa", "moneta", "topo", "padella"]) {
       immagini[nome] = PP.assets.image.load(s, "assets/images/" + nome + ".png");
     }
   }
@@ -84,9 +85,11 @@ export function registra_livello(config) {
 
     const esclusi = new Set(ARENE.flatMap((arena, indice) =>
       arene_superate.has(indice) ? arena.topi : []));
+    topi_grandi ??= scegli_topi_grandi(PATTUGLIE_TOPI.length);
     nemici = crea_nemici(s, {
       meg, pattuglie: PATTUGLIE_TOPI, terreni: TERRENI, suolo: SUOLO,
       immagine: immagini.topo, blocchi: blocchi_solidi, esclusi, bloccato,
+      grandi: topi_grandi, zone_sicure: [config.partenza, ...CHECKPOINT],
       on_contatto: topo => tocca_topo(s, topo),
       on_morte: topo => { lascia_moneta(s, topo); aggiorna_cancelli(); },
     });
@@ -95,6 +98,7 @@ export function registra_livello(config) {
     PP.camera.start_follow(s, meg, -180, 0);
     abilita = crea_abilita_meg(s, {
       meg, topi: nemici.elenco, bloccato, danneggia: nemici.danneggia,
+      immagine_padella: immagini.padella,
       ostacoli: () => [...blocchi_solidi,
         ...cancelli.filter(c => !arene_superate.has(c.indice)).map(c => c.corpo)],
     });
@@ -106,7 +110,7 @@ export function registra_livello(config) {
       dialogo = crea_dialogo(s, {
         battute: config.venditrice.battute,
         on_apri: () => {
-          abilita.termina();
+          abilita.sospendi();
           PP.physics.set_velocity_x(meg, 0);
           PP.physics.set_velocity_y(meg, 0);
           PP.physics.set_allow_gravity(meg, false);
@@ -185,6 +189,7 @@ export function registra_livello(config) {
   }
 
   function azzera_esplorazione() {
+    topi_grandi = null;
     arene_superate.clear();
     reliquie_raccolte.clear();
     monete_esplorazione_raccolte.clear();
@@ -238,19 +243,16 @@ export function registra_livello(config) {
   }
 
   function tocca_topo(s, topo) {
-    if (transizione || game_over || dialogo?.attivo || topo.vita <= 0 || topo.immune) return;
-    // Il colpo già attivo ha precedenza sul danno da contatto.
-    if (abilita.colpisci_melee(topo)) {
-      return;
-    }
-    const sopra = topo.corpo.geometry.y - A_TOPO / 2;
+    if (transizione || game_over || dialogo?.attivo || topo.vita <= 0) return;
+    const sopra = topo.corpo.geometry.y - topo.altezza / 2;
     const schiacciato = PP.physics.get_velocity_y(meg) > 0
       && piedi_meg_precedenti <= sopra + 8
       && meg.geometry.y < sopra;
-    if (!schiacciato) {
-      riprova(s);
-      return;
-    }
+    // I topi grandi non sono schiacciabili, anche dopo il primo colpo.
+    if (topo.grande && schiacciato) { riprova(s); return; }
+    // Il colpo già attivo ha precedenza sul contatto laterale.
+    if (abilita.colpisci_melee(topo)) return;
+    if (!schiacciato || topo.grande) { riprova(s); return; }
     PP.physics.set_velocity_y(meg, -RIMBALZO_TOPO);
     nemici.danneggia(topo);
   }
@@ -330,7 +332,7 @@ export function registra_livello(config) {
 
   function lascia_moneta(s, topo) {
     const moneta = monete_visive.crea(topo.corpo.geometry.x,
-      topo.corpo.geometry.y - A_TOPO / 2 - DIMENSIONE_MONETA / 2, true);
+      topo.corpo.geometry.y - topo.altezza / 2 - DIMENSIONE_MONETA / 2, true);
     for (const blocco of blocchi_solidi) PP.physics.add_collider(s, moneta, blocco);
     PP.physics.add_overlap_f(s, meg, moneta, () => raccogli_moneta(moneta));
   }
@@ -342,6 +344,7 @@ export function registra_livello(config) {
 
   function update(s) {
     monete_visive?.aggiorna();
+    abilita?.aggiorna_skin();
     if (transizione || game_over) return;
     nemici.aggiorna();
     piedi_meg_precedenti = meg.geometry.y + A_MEG / 2;
@@ -369,7 +372,7 @@ export function registra_livello(config) {
   }
 
   function destroy() {
-    abilita?.termina();
+    abilita?.distruggi();
   }
 
   PP.scenes.add(nome, preload, create, update, destroy);

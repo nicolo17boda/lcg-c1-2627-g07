@@ -34,8 +34,6 @@ const PIATTAFORME = [
   [8430, 530, 80], [9130, 520, 85],
 ];
 const CHECKPOINT = [1660, 2540, 3440, 4080, 5420, 6100, 7190, 8280, 9320];
-const SPINE = [[1810, 70], [2720, 70], [3550, 80], [4640, 55],
-  [6490, 80], [7600, 70], [8990, 60]];
 const RELIQUIE = [
   { x: 1775, y: 180 },
   { x: 4935, y: 225 },
@@ -65,7 +63,7 @@ registra_livello({
   numero: 1, nome: "livello1", partenza: 140, arrivo: 9860,
   lunghezza: LUNGHEZZA, suolo: SUOLO, fine_istruzioni: 140 + DISTANZA_ISTRUZIONI,
   terreni: TERRENI, piattaforme: PIATTAFORME, soffitti: SOFFITTI,
-  checkpoint: CHECKPOINT, spine: SPINE, reliquie: RELIQUIE,
+  checkpoint: CHECKPOINT, reliquie: RELIQUIE,
   monete: MONETE_ESPLORAZIONE, pattuglie: PATTUGLIE_TOPI, arene: ARENE,
   venditrice: { x: 440, battute: BATTUTE }, mercato: true,
 });
