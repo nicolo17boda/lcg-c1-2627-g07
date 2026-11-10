@@ -1,6 +1,6 @@
 import { LARGHEZZA, ALTEZZA } from "../config.js";
 import { lista_achievement } from "../achievement.js";
-import { testo, crea_barra } from "../gameplay/grafica.js";
+import { testo, crea_barra, adatta_testo } from "../gameplay/grafica.js";
 import { COLORI } from "../gameplay/config.js";
 
 let pagina = 0;
@@ -10,7 +10,7 @@ let contatore;
 
 function bottone(s, x, y, larghezza, etichetta, azione) {
   const corpo = PP.shapes.rectangle_add(s, x, y, larghezza, 64, "0x435870", 1);
-  testo(s, x, y, etichetta, 28);
+  adatta_testo(testo(s, x, y, etichetta, 24), larghezza - 40, 32);
   PP.interactive.mouse.add(corpo, "pointerdown", azione);
   PP.interactive.mouse.add(corpo, "pointerover", () => { corpo.visibility.alpha = 0.7; });
   PP.interactive.mouse.add(corpo, "pointerout", () => { corpo.visibility.alpha = 1; });

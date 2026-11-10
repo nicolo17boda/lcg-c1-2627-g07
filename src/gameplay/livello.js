@@ -368,7 +368,7 @@ export function registra_livello(config) {
       sinistra: premuto(tasti.LEFT) || premuto(tasti.A),
       destra: premuto(tasti.RIGHT) || premuto(tasti.D),
       salto: appena(tasti.SPACE) || appena(tasti.UP) || appena(tasti.W),
-      melee: appena(tasti.J), lancio: appena(tasti.K),
+      melee: appena(tasti.C), lancio: appena(tasti.V),
     });
     aggiorna_hud();
     if (meg.geometry.y > ALTEZZA + A_MEG) riprova(s);

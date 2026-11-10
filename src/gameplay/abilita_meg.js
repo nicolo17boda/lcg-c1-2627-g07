@@ -1,7 +1,7 @@
 import { LARGHEZZA, ALTEZZA } from "../config.js";
 import { VELOCITA, SALTO, COOLDOWN_DOPPIO_SALTO,
   COOLDOWN_LANCIO, COOLDOWN_MELEE, DURATA_MELEE, VELOCITA_PADELLA,
-  DURATA_RIENTRO_PADELLA, COLORI } from "./config.js";
+  DURATA_RIENTRO_PADELLA, DANNO_ATTACCO, COLORI } from "./config.js";
 
 export function crea_abilita_meg(s, { meg, topi, ostacoli, bloccato, danneggia, immagine_padella }) {
   let direzione_meg = 1;
@@ -120,6 +120,13 @@ export function crea_abilita_meg(s, { meg, topi, ostacoli, bloccato, danneggia, 
       const mano_x = meg.geometry.x + direzione_meg * 34;
       lancio.skin.geometry.x += (mano_x - lancio.skin.geometry.x) * frazione;
       lancio.skin.geometry.y += (meg.geometry.y + 10 - lancio.skin.geometry.y) * frazione;
+      for (const topo of topi) {
+        if (topo.vita <= 0 || lancio.colpiti_ritorno.has(topo.id) || !visibile(topo.corpo)) continue;
+        if (Math.abs(topo.corpo.geometry.x - lancio.skin.geometry.x) >= 15 + topo.larghezza / 2
+            || Math.abs(topo.corpo.geometry.y - lancio.skin.geometry.y) >= 12 + topo.altezza / 2) continue;
+        lancio.colpiti_ritorno.add(topo.id);
+        danneggia(topo, DANNO_ATTACCO / 2, true);
+      }
     }
     lancio.skin.geometry.angle += lancio.direzione * delta * 0.8;
     if (recupero_lancio === 0) termina_lancio();
@@ -136,7 +143,8 @@ export function crea_abilita_meg(s, { meg, topi, ostacoli, bloccato, danneggia, 
     PP.physics.set_velocity_x(corpo, direzione_meg * VELOCITA_PADELLA);
     const lancio = {
       corpo, skin: crea_skin_padella(corpo.geometry.x, corpo.geometry.y, 30, direzione_meg),
-      colpiti: new Set(), fase: "andata", direzione: direzione_meg, collisioni: [],
+      colpiti_andata: new Set(), colpiti_ritorno: new Set(),
+      fase: "andata", direzione: direzione_meg, collisioni: [],
     };
     padella_lanciata = lancio;
     aggiorna_skin();
@@ -150,10 +158,10 @@ export function crea_abilita_meg(s, { meg, topi, ostacoli, bloccato, danneggia, 
       if (topo.vita <= 0) continue;
       lancio.collisioni.push(PP.physics.add_overlap_f(s, corpo, topo.corpo, () => {
         if (padella_lanciata !== lancio || lancio.fase !== "andata"
-            || lancio.colpiti.has(topo.id) || bloccato()) return;
+            || lancio.colpiti_andata.has(topo.id) || bloccato()) return;
         if (!visibile(lancio.corpo)) { attendi_rientro(lancio); return; }
         if (!visibile(topo.corpo)) return;
-        lancio.colpiti.add(topo.id);
+        lancio.colpiti_andata.add(topo.id);
         danneggia(topo);
       }));
     }

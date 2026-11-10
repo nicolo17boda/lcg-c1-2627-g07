@@ -33,3 +33,20 @@ export function crea_barra(s, x, y, larghezza, colore = COLORI.meg) {
     },
   };
 }
+
+// Mantiene il rapporto del font entro lo spazio utile, senza deformare le lettere.
+export function adatta_testo(etichetta, larghezza, altezza) {
+  const scala = Math.min(1, larghezza / etichetta.geometry.display_width,
+    altezza / etichetta.geometry.display_height);
+  etichetta.geometry.scale_x *= scala;
+  etichetta.geometry.scale_y *= scala;
+  return etichetta;
+}
+
+// mappa.png ha margini trasparenti asimmetrici: misura il disegno, non il file.
+export function icona_mappa(s, immagine, x, y, altezza) {
+  const icona = PP.assets.image.add(s, immagine, x, y, 1082 / 2505, 1221.5 / 2505);
+  icona.geometry.scale_x = altezza / 465;
+  icona.geometry.scale_y = altezza / 465;
+  return icona;
+}

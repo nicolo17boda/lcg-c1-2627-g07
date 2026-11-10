@@ -110,9 +110,9 @@ export function crea_nemici(s, { meg, pattuglie: PATTUGLIE_TOPI, terreni: TERREN
     }
   }
 
-  function danneggia_topo(s, topo) {
-    if (bloccato() || topo.vita <= 0 || topo.immune) return;
-    topo.vita = Math.max(0, topo.vita - DANNO_ATTACCO);
+  function danneggia_topo(s, topo, danno = DANNO_ATTACCO, ignora_immunita = false) {
+    if (bloccato() || topo.vita <= 0 || (topo.immune && !ignora_immunita)) return;
+    topo.vita = Math.max(0, topo.vita - danno);
     if (topo.vita === 0) {
       on_morte(topo);
       PP.shapes.destroy(topo.corpo);
@@ -122,6 +122,7 @@ export function crea_nemici(s, { meg, pattuglie: PATTUGLIE_TOPI, terreni: TERREN
       return;
     }
     aggiorna_barra_topo(topo);
+    if (topo.immune) return;
     topo.immune = true;
     topo.skin.visibility.alpha = 0.5;
     // Evita danni multipli durante la stessa sovrapposizione.
@@ -134,5 +135,6 @@ export function crea_nemici(s, { meg, pattuglie: PATTUGLIE_TOPI, terreni: TERREN
 
   crea_topi(s);
   return { elenco: topi, per_id, aggiorna: aggiorna_topi,
-    danneggia: topo => danneggia_topo(s, topo) };
+    danneggia: (topo, danno, ignora_immunita) =>
+      danneggia_topo(s, topo, danno, ignora_immunita) };
 }

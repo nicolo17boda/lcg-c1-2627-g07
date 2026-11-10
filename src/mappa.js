@@ -1,3 +1,4 @@
+import { adatta_testo, icona_mappa } from "./gameplay/grafica.js";
 import { LARGHEZZA, ALTEZZA, font as FONT } from "./config.js";
 import { livello_sbloccato, monete_totali } from "./progressi.js";
 
@@ -42,10 +43,8 @@ function create(s) {
   mercato_bloccato = PP.game_state.get_variable("mappa_da_partita") === true;
   PP.shapes.rectangle_add(s, LARGHEZZA / 2, ALTEZZA / 2,
     LARGHEZZA, ALTEZZA, SFONDO, 1);
-  testo(s, 675, 52, "Mappa di Sussex", 44);
-  const icona_mappa = PP.assets.image.add(s, immagine_mappa, 475, 52, 0.5, 0.5);
-  icona_mappa.geometry.scale_x = 0.14;
-  icona_mappa.geometry.scale_y = 0.14;
+  adatta_testo(testo(s, 675, 52, "Mappa di Sussex", 36), 370, 46);
+  icona_mappa(s, immagine_mappa, 455, 52, 42);
   testo(s, LARGHEZZA / 2, 100, "Scegli la tua prossima tappa", 24);
   const icona_moneta = PP.assets.image.add(s, immagine_moneta, 1035, 52, 0.5, 0.5);
   icona_moneta.geometry.scale_x = 0.064;
@@ -81,7 +80,7 @@ function riprendi() {
 function crea_riprendi(s) {
   const bottone = PP.shapes.rectangle_add(s, 150, 55,
     240, 54, PANNELLO, 1);
-  testo(s, 150, 55, "Riprendi (M)", 26);
+  adatta_testo(testo(s, 150, 55, "Riprendi (M)", 22), 204, 28);
   PP.interactive.mouse.add(bottone, "pointerdown", riprendi);
   PP.interactive.mouse.add(bottone, "pointerover", () => {
     bottone.visibility.alpha = 0.7;
@@ -94,7 +93,7 @@ function crea_riprendi(s) {
 function crea_ritorno_menu(s) {
   const bottone = PP.shapes.rectangle_add(s, 150, 55,
     240, 54, PANNELLO, 1);
-  testo(s, 150, 55, "← Torna al menu", 26);
+  adatta_testo(testo(s, 150, 55, "← Torna al menu", 22), 204, 28);
   PP.interactive.mouse.add(bottone, "pointerdown", () => {
     PP.scenes.start("menu");
   });

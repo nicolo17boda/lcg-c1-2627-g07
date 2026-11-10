@@ -1,3 +1,4 @@
+import { adatta_testo } from "./gameplay/grafica.js";
 import { LARGHEZZA, ALTEZZA, font as FONT, font_titolo as FONT_TITOLO } from "./config.js";
 
 const BIANCO = "0xFFFFFF";
@@ -73,7 +74,7 @@ function crea_sfondo(s) {
 function crea_bottone(s, y, etichetta, azione) {
   const bottone = PP.shapes.rectangle_add(s, LARGHEZZA / 2, y,
     280, 76, COLORE_BOTTONE, 1);
-  testo(s, LARGHEZZA / 2, y, etichetta, 36);
+  adatta_testo(testo(s, LARGHEZZA / 2, y, etichetta, 30), 232, 38);
   PP.interactive.mouse.add(bottone, "pointerdown", azione);
   PP.interactive.mouse.add(bottone, "pointerover", () => {
     bottone.visibility.alpha = 0.7;
