@@ -4,6 +4,7 @@ import { L_MEG, A_MEG, A_TOPO, DIMENSIONE_MONETA, RIMBALZO_TOPO, VITE_MAX, COLOR
 import { rettangolo_fisico, fissa, testo } from "./grafica.js";
 import { crea_abilita_meg } from "./abilita_meg.js";
 import { crea_nemici } from "./nemici.js";
+import { crea_monete } from "./monete.js";
 import { crea_dialogo } from "./dialogo.js";
 import { crea_hud, crea_game_over } from "./hud.js";
 
@@ -15,7 +16,7 @@ export function registra_livello(config) {
     checkpoint: CHECKPOINT = [], spine: SPINE = [], reliquie: RELIQUIE = [],
     monete: MONETE_ESPLORAZIONE = [], pattuglie: PATTUGLIE_TOPI = [], arene: ARENE = [],
   } = config;
-  let meg, nemici, abilita, hud, dialogo;
+  let meg, nemici, abilita, hud, dialogo, monete_visive;
   let partenza = config.partenza;
   let vite = VITE_MAX;
   let istruzioni_visibili = true;
@@ -45,6 +46,7 @@ export function registra_livello(config) {
     dialogo = null;
     cancelli = [];
     blocchi_solidi = [];
+    monete_visive = crea_monete(s, immagini.moneta);
     piedi_meg_precedenti = SUOLO;
     crea_sfondo(s);
     meg = PP.shapes.rectangle_add(s, partenza, SUOLO - A_MEG / 2,
@@ -132,7 +134,7 @@ export function registra_livello(config) {
     }
     for (const [indice, [x, y]] of MONETE_ESPLORAZIONE.entries()) {
       if (monete_esplorazione_raccolte.has(indice)) continue;
-      const moneta = rettangolo_fisico(s, x - 8, y - 8, 16, 16, COLORI.moneta);
+      const moneta = monete_visive.crea(x, y);
       PP.physics.add_overlap_f(s, meg, moneta, () => {
         if (transizione || game_over || dialogo?.attivo || moneta.raccolta) return;
         monete_esplorazione_raccolte.add(indice);
@@ -259,7 +261,7 @@ export function registra_livello(config) {
     aggiungi_moneta();
     monete_tentativo += 1;
     aggiorna_hud();
-    PP.shapes.destroy(moneta);
+    monete_visive.rimuovi(moneta);
   }
 
   function perdi_monete_tentativo() {
@@ -327,12 +329,8 @@ export function registra_livello(config) {
   }
 
   function lascia_moneta(s, topo) {
-    const moneta = PP.shapes.rectangle_add(s, topo.corpo.geometry.x,
-      topo.corpo.geometry.y - A_TOPO / 2 - DIMENSIONE_MONETA / 2,
-      DIMENSIONE_MONETA, DIMENSIONE_MONETA, COLORI.moneta, 1);
-    PP.physics.add(s, moneta, PP.physics.type.DYNAMIC);
-    PP.physics.set_collision_rectangle(moneta,
-      DIMENSIONE_MONETA, DIMENSIONE_MONETA, 0, 0);
+    const moneta = monete_visive.crea(topo.corpo.geometry.x,
+      topo.corpo.geometry.y - A_TOPO / 2 - DIMENSIONE_MONETA / 2, true);
     for (const blocco of blocchi_solidi) PP.physics.add_collider(s, moneta, blocco);
     PP.physics.add_overlap_f(s, meg, moneta, () => raccogli_moneta(moneta));
   }
@@ -343,6 +341,7 @@ export function registra_livello(config) {
   }
 
   function update(s) {
+    monete_visive?.aggiorna();
     if (transizione || game_over) return;
     nemici.aggiorna();
     piedi_meg_precedenti = meg.geometry.y + A_MEG / 2;
