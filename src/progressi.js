@@ -1,3 +1,5 @@
+import { registra_progresso_achievement } from "./achievement.js";
+
 // PP.game_state conserva i progressi soltanto nella RAM della pagina.
 // Non usa localStorage, cookie o salvataggi su disco.
 export function livello_sbloccato(numero) {
@@ -29,6 +31,7 @@ export function monete_totali() {
 export function aggiungi_moneta() {
   const monete = monete_totali() + 1;
   PP.game_state.set_variable("monete", monete);
+  registra_progresso_achievement("monete_raccolte");
   return monete;
 }
 

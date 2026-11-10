@@ -4,6 +4,7 @@ import { L_MEG, A_MEG, DIMENSIONE_MONETA, RIMBALZO_TOPO, VITE_MAX, COLORI } from
 import { rettangolo_fisico, fissa, testo } from "./grafica.js";
 import { crea_abilita_meg } from "./abilita_meg.js";
 import { crea_nemici, scegli_topi_grandi } from "./nemici.js";
+import { crea_notifiche_achievement } from "./notifiche_achievement.js";
 import { crea_monete } from "./monete.js";
 import { crea_dialogo } from "./dialogo.js";
 import { crea_hud, crea_game_over } from "./hud.js";
@@ -16,7 +17,7 @@ export function registra_livello(config) {
     checkpoint: CHECKPOINT = [], spine: SPINE = [], reliquie: RELIQUIE = [],
     monete: MONETE_ESPLORAZIONE = [], pattuglie: PATTUGLIE_TOPI = [], arene: ARENE = [],
   } = config;
-  let meg, nemici, abilita, hud, dialogo, monete_visive;
+  let meg, nemici, abilita, hud, dialogo, monete_visive, notifiche;
   let partenza = config.partenza;
   let vite = VITE_MAX;
   let istruzioni_visibili = true;
@@ -123,6 +124,7 @@ export function registra_livello(config) {
       crea_amico(s);
     }
     crea_esplorazione(s);
+    notifiche = crea_notifiche_achievement(s);
   }
 
   function crea_esplorazione(s) {
@@ -345,6 +347,7 @@ export function registra_livello(config) {
   function update(s) {
     monete_visive?.aggiorna();
     abilita?.aggiorna_skin();
+    if (!transizione && !dialogo?.attivo) notifiche?.aggiorna(1000 / PP.game.get_physics_fps(s));
     if (transizione || game_over) return;
     nemici.aggiorna();
     piedi_meg_precedenti = meg.geometry.y + A_MEG / 2;
@@ -373,6 +376,7 @@ export function registra_livello(config) {
 
   function destroy() {
     abilita?.distruggi();
+    notifiche?.distruggi();
   }
 
   PP.scenes.add(nome, preload, create, update, destroy);

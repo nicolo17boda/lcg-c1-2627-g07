@@ -36,6 +36,7 @@ function create(s) {
     PP.game_state.set_variable("mappa_da_partita", false);
     PP.scenes.start("mappa");
   });
+  crea_bottone(s, 580, "Achievement", () => PP.scenes.start("achievement"));
   testo(s, LARGHEZZA / 2, ALTEZZA - 24,
     "Politecnico di Milano - Gruppo 07 - Nicolò Boda, Cecilia Colombo, Carolina Sacco, Caterina Villa", 22);
 }
