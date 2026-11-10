@@ -1,4 +1,4 @@
-import { LARGHEZZA, ALTEZZA, font as FONT } from "./config.js";
+import { LARGHEZZA, ALTEZZA, font as FONT, font_titolo as FONT_TITOLO } from "./config.js";
 
 const BIANCO = "0xFFFFFF";
 const SFONDI = ["0x17263D", "0x26304A", "0x243C40"];
@@ -29,7 +29,7 @@ function preload(s) {
 
 function create(s) {
   crea_sfondo(s);
-  testo(s, LARGHEZZA / 2, 190, "La Mamma dell'Ammazzadraghi", 56);
+  testo(s, LARGHEZZA / 2, 190, "La Mamma dell'Ammazzadraghi", 56, FONT_TITOLO);
   crea_bottone(s, 370, "Storia", () => PP.scenes.start("storia"));
   crea_bottone(s, 475, "Gioca", () => {
     PP.game_state.set_variable("mappa_dal_menu", true);
@@ -83,9 +83,9 @@ function crea_bottone(s, y, etichetta, azione) {
   });
 }
 
-function testo(s, x, y, contenuto, dimensione) {
+function testo(s, x, y, contenuto, dimensione, font = FONT) {
   return PP.shapes.text_styled_add(s, x, y, contenuto,
-    dimensione, FONT, "normal", BIANCO, null, 0.5, 0.5);
+    dimensione, font, "normal", BIANCO, null, 0.5, 0.5);
 }
 
 function update(s) {

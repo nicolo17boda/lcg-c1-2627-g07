@@ -1,4 +1,4 @@
-import {LARGHEZZA, ALTEZZA, font as FONT} from "./config.js";
+import {LARGHEZZA, ALTEZZA, font as FONT, font_titolo as FONT_TITOLO} from "./config.js";
 import "./menu.js";
 import "./scenes/achievement.js";
 import "./scenes/livello1.js";
@@ -22,4 +22,7 @@ function avvia() {
     PP.game.create(config);
 }
 
-document.fonts.load("24px " + FONT).then(avvia, avvia);
+Promise.all([
+    document.fonts.load("24px " + FONT),
+    document.fonts.load("24px " + FONT_TITOLO),
+]).then(avvia, avvia);
