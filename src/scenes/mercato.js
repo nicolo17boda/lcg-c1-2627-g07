@@ -20,7 +20,7 @@ function create(s) {
   }
   const bottone = PP.shapes.rectangle_add(s, LARGHEZZA / 2, 570,
     300, 64, "0x66518A", 1);
-  testo(s, 570, ritorno === "livello1" ? "Torna al livello" : "Torna alla mappa", 28);
+  testo(s, 570, ritorno === "mappa" ? "Torna alla mappa" : "Torna al livello", 28);
   PP.interactive.mouse.add(bottone, "pointerdown", esci);
   PP.interactive.mouse.add(bottone, "pointerover", () => {
     bottone.visibility.alpha = 0.7;
