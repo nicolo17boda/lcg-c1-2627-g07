@@ -8,6 +8,7 @@ import { crea_notifiche_achievement } from "./notifiche_achievement.js";
 import { crea_monete } from "./monete.js";
 import { crea_dialogo } from "./dialogo.js";
 import { crea_hud, crea_game_over } from "./hud.js";
+import { prepara_skin_terreni, disegna_terreno } from "./terreni.js";
 
 // Ogni chiamata registra una scena con stato indipendente. Solo questi progressi
 // sopravvivono ai riavvii: checkpoint, vite, raccolte e arene già superate.
@@ -33,10 +34,12 @@ export function registra_livello(config) {
   const reliquie_raccolte = new Set();
   const monete_esplorazione_raccolte = new Set();
   const immagini = {};
+  let skin_terreni;
   const bloccato = () => transizione || game_over || Boolean(dialogo?.attivo);
 
   function preload(s) {
-    for (const nome of ["cuore", "mappa", "moneta", "topo", "padella"]) {
+    for (const nome of ["cuore", "mappa", "moneta", "topo", "padella",
+      "terreni-01", "terreni-02", "terreni-03"]) {
       immagini[nome] = PP.assets.image.load(s, "assets/images/" + nome + ".png");
     }
   }
@@ -51,6 +54,7 @@ export function registra_livello(config) {
     monete_visive = crea_monete(s, immagini.moneta);
     piedi_meg_precedenti = SUOLO;
     crea_sfondo(s);
+    skin_terreni = prepara_skin_terreni(s, immagini);
     meg = PP.shapes.rectangle_add(s, partenza, SUOLO - A_MEG / 2,
       L_MEG, A_MEG, COLORI.meg, 1);
     PP.physics.add(s, meg, PP.physics.type.DYNAMIC);
@@ -59,13 +63,13 @@ export function registra_livello(config) {
     PP.physics.set_collide_world_bounds(meg, true);
 
     for (const [x, larghezza] of TERRENI) {
-      crea_blocco(s, x, SUOLO, larghezza, ALTEZZA - SUOLO, COLORI.terreno);
+      crea_blocco(s, x, SUOLO, larghezza, ALTEZZA - SUOLO, skin_terreni.suolo);
     }
     for (const [x, y, larghezza] of PIATTAFORME) {
-      crea_blocco(s, x, y, larghezza, 24, COLORI.piattaforma);
+      crea_blocco(s, x, y, larghezza, 24, skin_terreni.piattaforma);
     }
     for (const [x, larghezza] of SOFFITTI) {
-      crea_blocco(s, x, -400, larghezza, SUOLO + 190, COLORI.terreno);
+      crea_blocco(s, x, -400, larghezza, SUOLO + 190, skin_terreni.roccia);
     }
 
     for (const x of CHECKPOINT) {
@@ -238,8 +242,10 @@ export function registra_livello(config) {
     }
   }
 
-  function crea_blocco(s, x, y, larghezza, altezza, colore) {
-    const blocco = rettangolo_fisico(s, x, y, larghezza, altezza, colore);
+  function crea_blocco(s, x, y, larghezza, altezza, skin) {
+    const blocco = rettangolo_fisico(s, x, y, larghezza, altezza, COLORI.terreno);
+    blocco.visibility.alpha = 0;
+    disegna_terreno(s, skin, x, y, larghezza, altezza);
     PP.physics.add_collider(s, meg, blocco);
     blocchi_solidi.push(blocco);
   }
