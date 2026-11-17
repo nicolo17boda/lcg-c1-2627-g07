@@ -1,6 +1,6 @@
 import { LARGHEZZA, ALTEZZA } from "../config.js";
 import { COLORI, VITE_MAX } from "./config.js";
-import { testo, fissa, adatta_testo, icona_mappa } from "./grafica.js";
+import { testo, fissa, adatta_testo } from "./grafica.js";
 
 function crea_indicatore_ricarica(s, x, y, icona) {
   const fondo = PP.shapes.arc_add(s, x, y, 19, 0, 360, false, COLORI.terreno, 0.45);
@@ -53,9 +53,9 @@ function crea_indicatore_ricarica(s, x, y, icona) {
   };
 }
 
-export function crea_hud(s, { numero, immagini, torna_mappa }) {
-  const { cuore: immagine_cuore, moneta: immagine_moneta, mappa: immagine_mappa,
-    padella: immagine_padella } = immagini;
+export function crea_hud(s, { immagini, pausa }) {
+  const { cuore: immagine_cuore, moneta: immagine_moneta,
+    "padella-24": immagine_padella } = immagini;
   let elementi_hud = [], cuori = [];
   let pannello_istruzioni, istruzioni, testo_monete, monete_visibili;
   let vite_precedenti, istruzioni_visibili;
@@ -71,7 +71,7 @@ export function crea_hud(s, { numero, immagini, torna_mappa }) {
       1, 26, COLORI.terreno, 0.8);
     const divisore = PP.shapes.rectangle_add(s, 174, 68,
       272, 1, COLORI.terreno, 0.8);
-    const titolo = testo(s, LARGHEZZA / 2, 40, "Meg · Livello " + numero, 22);
+    const titolo = testo(s, LARGHEZZA / 2, 40, "Meg", 22);
     const etichetta_salto = testo(s, 96, 140, "Doppio salto", 13);
     ricarica_salto = crea_indicatore_ricarica(s, 96, 102);
     const etichetta_padella = testo(s, 248, 140, "Lancio padella", 13);
@@ -82,7 +82,7 @@ export function crea_hud(s, { numero, immagini, torna_mappa }) {
     pannello_istruzioni = PP.shapes.rectangle_add(s, 524, 63,
       1000, 94, COLORI.sfondo, 0.96);
     istruzioni = testo(s, 524, 63,
-      "← → / A D  Muovi     Spazio / ↑ / W  Doppio salto\nC  Melee padella    V  Lancio padella    R  Ricomincia    M  Mappa", 17);
+      "← → / A D  Muovi     Spazio / ↑ / W  Doppio salto\nC  Melee padella    V  Lancio padella    R  Ricomincia    Esc  Pausa", 17);
     fissa(pannello_istruzioni);
     fissa(istruzioni);
     cuori = [];
@@ -105,13 +105,10 @@ export function crea_hud(s, { numero, immagini, torna_mappa }) {
     const bottone = PP.shapes.rectangle_add(s, LARGHEZZA - 105, 45,
       170, 52, COLORI.terreno, 1);
     fissa(bottone);
-    const simbolo_mappa = icona_mappa(s, immagine_mappa,
-      LARGHEZZA - 158, 45, 28);
-    fissa(simbolo_mappa);
-    const etichetta_mappa = adatta_testo(
-      testo(s, LARGHEZZA - 83, 45, "Mappa [M]", 16), 100, 24);
-    fissa(etichetta_mappa);
-    PP.interactive.mouse.add(bottone, "pointerdown", torna_mappa);
+    const etichetta_menu = adatta_testo(
+      testo(s, LARGHEZZA - 105, 45, "Pausa [Esc]", 18), 146, 24);
+    fissa(etichetta_menu);
+    PP.interactive.mouse.add(bottone, "pointerdown", pausa);
     PP.interactive.mouse.add(bottone, "pointerover", () => {
       bottone.visibility.alpha = 0.7;
     });

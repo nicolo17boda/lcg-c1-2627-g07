@@ -1,5 +1,5 @@
 import { LARGHEZZA, ALTEZZA } from "../config.js";
-import { aggiungi_moneta, monete_totali, rimuovi_monete, completa_livello, livello_sbloccato } from "../progressi.js";
+import { aggiungi_moneta, monete_totali, rimuovi_monete } from "../progressi.js";
 import { L_MEG, A_MEG, DIMENSIONE_MONETA, RIMBALZO_TOPO, VITE_MAX, COLORI } from "./config.js";
 import { rettangolo_fisico, fissa, testo } from "./grafica.js";
 import { crea_abilita_meg } from "./abilita_meg.js";
@@ -9,11 +9,12 @@ import { crea_dialogo } from "./dialogo.js";
 import { crea_hud, crea_game_over } from "./hud.js";
 import { prepara_skin_terreni, disegna_terreno } from "./terreni.js";
 import { crea_skin_personaggio } from "./personaggi.js";
+import { apri_pausa } from "../scenes/pausa.js";
 
 // Ogni chiamata registra una scena con stato indipendente. Solo questi progressi
 // sopravvivono ai riavvii: checkpoint, vite, raccolte e arene già superate.
 export function registra_livello(config) {
-  const { nome, numero, lunghezza: LUNGHEZZA, suolo: SUOLO,
+  const { nome, lunghezza: LUNGHEZZA, suolo: SUOLO,
     terreni: TERRENI, piattaforme: PIATTAFORME = [], soffitti: SOFFITTI = [],
     checkpoint: CHECKPOINT = [], spine: SPINE = [], reliquie: RELIQUIE = [],
     monete: MONETE_ESPLORAZIONE = [], pattuglie: PATTUGLIE_TOPI = [], arene: ARENE = [],
@@ -26,7 +27,7 @@ export function registra_livello(config) {
   let dialogo_finito = false;
   let transizione = false;
   let game_over = false;
-  let m_rilasciato = true;
+  let esc_rilasciato = true;
   let blocchi_solidi = [], cancelli = [];
   let piedi_meg_precedenti;
   let topi_grandi = null;
@@ -39,14 +40,13 @@ export function registra_livello(config) {
   const bloccato = () => transizione || game_over || Boolean(dialogo?.attivo);
 
   function preload(s) {
-    for (const nome of ["cuore", "mappa", "moneta", "topo", "padella-24",
+    for (const nome of ["cuore", "moneta", "topo", "padella-24",
       "terreni-01", "terreni-02", "terreni-03", "terra paese", "meg-24", "index"]) {
       immagini[nome] = PP.assets.image.load(s, "assets/images/" + nome + ".png");
     }
   }
   function create(s) {
-    if (!livello_sbloccato(numero)) { PP.scenes.start("mappa"); return; }
-    m_rilasciato = true;
+    esc_rilasciato = false;
     transizione = false;
     game_over = false;
     dialogo = null;
@@ -117,7 +117,7 @@ export function registra_livello(config) {
       ostacoli: () => [...blocchi_solidi,
         ...cancelli.filter(c => !arene_superate.has(c.indice)).map(c => c.corpo)],
     });
-    hud = crea_hud(s, { numero, immagini, torna_mappa });
+    hud = crea_hud(s, { immagini, pausa });
     hud.mostra_istruzioni(istruzioni_visibili);
     aggiorna_hud();
     if (config.mercato) crea_portale_mercato(s);
@@ -227,8 +227,9 @@ export function registra_livello(config) {
   }
 
   function crea_amico(s) {
-    crea_skin_personaggio(s, immagini.index, config.venditrice.x, SUOLO, 64);
-    testo(s, config.venditrice.x, SUOLO - 90, "Venditrice", 24);
+    const altezza_venditrice = 28 * 4;
+    crea_skin_personaggio(s, immagini.index, config.venditrice.x, SUOLO, altezza_venditrice);
+    testo(s, config.venditrice.x, SUOLO - altezza_venditrice - 26, "Venditrice", 24);
     const zona = rettangolo_fisico(s, config.venditrice.x - 130, SUOLO - 240,
       250, 240, COLORI.checkpoint);
     zona.visibility.alpha = 0;
@@ -323,27 +324,35 @@ export function registra_livello(config) {
 
   function completa() {
     if (transizione || game_over || arene_superate.size < ARENE.length) return;
-    if (!completa_livello(numero)) return;
     abilita.termina();
     // Le monete del tentativo diventano definitive soltanto raggiungendo l'arrivo.
     monete_tentativo = 0;
     azzera_esplorazione();
     transizione = true;
-    PP.game_state.set_variable("mappa_da_partita", false);
     partenza = config.partenza;
     vite = VITE_MAX;
     istruzioni_visibili = true;
     dialogo_finito = false;
-    PP.scenes.start("mappa");
+    PP.scenes.start("menu");
   }
 
-  function torna_mappa() {
+  function pausa() {
     if (transizione || PP.scenes.in_overlay_mode) return;
-    // Ignora il tasto usato per chiudere la mappa finché non viene rilasciato.
-    m_rilasciato = false;
-    PP.game_state.set_variable("mappa_da_partita", true);
-    // La libreria sospende il livello senza distruggerne posizione e stato.
-    PP.scenes.start_overlay("mappa");
+    esc_rilasciato = false;
+    apri_pausa(torna_menu);
+  }
+
+  function torna_menu() {
+    if (transizione) return;
+    abilita.termina();
+    perdi_monete_tentativo();
+    azzera_esplorazione();
+    partenza = config.partenza;
+    vite = VITE_MAX;
+    istruzioni_visibili = true;
+    dialogo_finito = false;
+    transizione = true;
+    PP.scenes.start("menu");
   }
 
   function lascia_moneta(s, topo) {
@@ -365,6 +374,11 @@ export function registra_livello(config) {
   }
 
   function update(s) {
+    if (!PP.interactive.kb.is_key_down(s, PP.key_codes.ESC)) esc_rilasciato = true;
+    if (esc_rilasciato && PP.interactive.kb.is_key_just_down(s, PP.key_codes.ESC)) {
+      pausa();
+      return;
+    }
     monete_visive?.aggiorna();
     abilita?.aggiorna_skin();
     if (transizione || game_over) return;
@@ -377,9 +391,6 @@ export function registra_livello(config) {
     const tasti = PP.key_codes;
     const premuto = tasto => PP.interactive.kb.is_key_down(s, tasto);
     const appena = tasto => PP.interactive.kb.is_key_just_down(s, tasto);
-    const apri_con_m = m_rilasciato && appena(tasti.M);
-    if (!m_rilasciato && !premuto(tasti.M)) m_rilasciato = true;
-    if (apri_con_m || appena(tasti.ESC)) { torna_mappa(); return; }
     if (appena(tasti.R)) { ricomincia(); return; }
     if (dialogo?.attivo) { dialogo.aggiorna(); return; }
     // PoliPhaser richiama update con passo fisso alla frequenza della fisica.

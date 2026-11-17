@@ -32,13 +32,8 @@ function create(s) {
   crea_sfondo(s);
   testo(s, LARGHEZZA / 2, 190, "La Mamma dell'Ammazzadraghi", 56, FONT_TITOLO);
   crea_bottone(s, 370, "Storia", () => PP.scenes.start("storia"));
-  crea_bottone(s, 475, "Gioca", () => {
-    PP.game_state.set_variable("mappa_dal_menu", true);
-    PP.game_state.set_variable("mappa_da_partita", false);
-    PP.scenes.start("mappa");
-  });
-  testo(s, LARGHEZZA / 2, ALTEZZA - 24,
-    "Politecnico di Milano - Gruppo 07 - Nicolò Boda, Cecilia Colombo, Carolina Sacco, Caterina Villa", 22);
+  crea_bottone(s, 475, "Gioca", () => PP.scenes.start("livello1"));
+  crea_bottone(s, 580, "Crediti", () => PP.scenes.start("crediti"));
 }
 
 function crea_sfondo(s) {
@@ -113,3 +108,24 @@ function crea_storia(s) {
 }
 
 PP.scenes.add("storia", () => {}, crea_storia, () => {}, () => {});
+
+function crea_crediti(s) {
+  crea_sfondo(s);
+  testo(s, LARGHEZZA / 2, 110, "Crediti", 64, FONT_TITOLO);
+  testo(s, LARGHEZZA / 2, 200, "Politecnico di Milano", 30);
+  testo(s, LARGHEZZA / 2, 245, "Laboratorio di Game Design · Gruppo 07", 24);
+  const autori = ["Nicolò Boda", "Cecilia Colombo", "Carolina Sacco", "Caterina Villa"];
+  autori.forEach((nome, indice) => {
+    testo(s, LARGHEZZA / 2, 325 + indice * 48, nome, 30);
+  });
+  crea_bottone(s, 590, "Torna al menu", () => PP.scenes.start("menu"));
+}
+
+function aggiorna_crediti(s) {
+  update(s);
+  if (PP.interactive.kb.is_key_just_down(s, PP.key_codes.ESC)) {
+    PP.scenes.start("menu");
+  }
+}
+
+PP.scenes.add("crediti", preload, crea_crediti, aggiorna_crediti, destroy);

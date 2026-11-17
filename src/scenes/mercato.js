@@ -6,7 +6,7 @@ let uscita;
 function preload(s) {}
 
 function create(s) {
-  ritorno = PP.game_state.get_variable("ritorno_mercato") || "mappa";
+  ritorno = PP.game_state.get_variable("ritorno_mercato") || "livello1";
   PP.game_state.set_variable("ritorno_mercato", null);
   uscita = false;
   PP.shapes.rectangle_add(s, LARGHEZZA / 2, ALTEZZA / 2,
@@ -20,7 +20,7 @@ function create(s) {
   }
   const bottone = PP.shapes.rectangle_add(s, LARGHEZZA / 2, 570,
     300, 64, "0x66518A", 1);
-  testo(s, 570, ritorno === "mappa" ? "Torna alla mappa" : "Torna al livello", 28);
+  testo(s, 570, "Torna al livello", 28);
   PP.interactive.mouse.add(bottone, "pointerdown", esci);
   PP.interactive.mouse.add(bottone, "pointerover", () => {
     bottone.visibility.alpha = 0.7;

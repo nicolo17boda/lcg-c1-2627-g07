@@ -1,12 +1,10 @@
 import {LARGHEZZA, ALTEZZA, font as FONT, font_titolo as FONT_TITOLO} from "./config.js";
 import "./menu.js";
 import "./scenes/livello1.js";
-import "./scenes/livello2.js";
-import "./scenes/livello3.js";
-import "./scenes/livello4.js";
 import "./scenes/mercato.js";
-// Registrata dopo i livelli: quando è aperta come overlay viene disegnata sopra.
-import "./mappa.js";
+import { registra_pausa } from "./scenes/pausa.js";
+
+registra_pausa();
 
 const config = {
     canvas_width: LARGHEZZA,
