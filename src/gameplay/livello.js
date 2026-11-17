@@ -55,6 +55,10 @@ export function registra_livello(config) {
     piedi_meg_precedenti = SUOLO;
     crea_sfondo(s);
     skin_terreni = prepara_skin_terreni(s, immagini);
+    if (config.skin_terreni) {
+      const skin = skin_terreni[config.skin_terreni];
+      skin_terreni = { suolo: skin, piattaforma: skin, roccia: skin };
+    }
     meg = PP.shapes.rectangle_add(s, partenza, SUOLO - A_MEG / 2,
       L_MEG, A_MEG, COLORI.meg, 1);
     PP.physics.add(s, meg, PP.physics.type.DYNAMIC);

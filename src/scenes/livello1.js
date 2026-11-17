@@ -61,6 +61,7 @@ const BATTUTE = [
 
 registra_livello({
   numero: 1, nome: "livello1", partenza: 140, arrivo: 9860,
+  skin_terreni: "roccia",
   lunghezza: LUNGHEZZA, suolo: SUOLO, fine_istruzioni: 140 + DISTANZA_ISTRUZIONI,
   terreni: TERRENI, piattaforme: PIATTAFORME, soffitti: SOFFITTI,
   checkpoint: CHECKPOINT, reliquie: RELIQUIE,
