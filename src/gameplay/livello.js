@@ -12,12 +12,12 @@ import { crea_skin_personaggio } from "./personaggi.js";
 import { apri_pausa } from "../scenes/pausa.js";
 
 // Ogni chiamata registra una scena con stato indipendente. Solo questi progressi
-// sopravvivono ai riavvii: checkpoint, vite, raccolte e arene già superate.
+// sopravvivono ai riavvii: checkpoint, vite e raccolte.
 export function registra_livello(config) {
   const { nome, lunghezza: LUNGHEZZA, suolo: SUOLO,
     terreni: TERRENI, piattaforme: PIATTAFORME = [], soffitti: SOFFITTI = [],
     checkpoint: CHECKPOINT = [], spine: SPINE = [], reliquie: RELIQUIE = [],
-    monete: MONETE_ESPLORAZIONE = [], pattuglie: PATTUGLIE_TOPI = [], arene: ARENE = [],
+    monete: MONETE_ESPLORAZIONE = [], pattuglie: PATTUGLIE_TOPI = [],
   } = config;
   let meg, nemici, abilita, hud, dialogo, monete_visive;
   let skin_meg;
@@ -29,11 +29,11 @@ export function registra_livello(config) {
   let transizione = false;
   let game_over = false;
   let esc_rilasciato = true;
-  let blocchi_solidi = [], cancelli = [];
+  let mercato_pronto = false;
+  let blocchi_solidi = [], mercati = [];
   let piedi_meg_precedenti;
   let topi_grandi = null;
   let monete_tentativo = 0;
-  const arene_superate = new Set();
   const reliquie_raccolte = new Set();
   const monete_esplorazione_raccolte = new Set();
   const immagini = {};
@@ -47,11 +47,12 @@ export function registra_livello(config) {
     }
   }
   function create(s) {
+    mercato_pronto = false;
     esc_rilasciato = false;
     transizione = false;
     game_over = false;
     dialogo = null;
-    cancelli = [];
+    mercati = [];
     blocchi_solidi = [];
     monete_visive = crea_monete(s, immagini.moneta);
     piedi_meg_precedenti = SUOLO;
@@ -66,7 +67,7 @@ export function registra_livello(config) {
     PP.physics.add(s, meg, PP.physics.type.DYNAMIC);
     meg.visibility.alpha = 0;
     // Altezza della skin: 27 quadratini da 4 px.
-    skin_meg = crea_skin_personaggio(s, immagini["meg-24"], partenza, SUOLO, 27 * 4);
+    skin_meg = crea_skin_personaggio(s, immagini["meg-24"], partenza, SUOLO, A_MEG);
     s.events.on("postupdate", aggiorna_skin_meg);
     s.events.once("shutdown", () => s.events.off("postupdate", aggiorna_skin_meg));
     // Il limite inferiore resta sotto lo schermo per consentire la caduta nei vuoti.
@@ -99,24 +100,21 @@ export function registra_livello(config) {
     PP.physics.add_overlap_f(s, meg, arrivo, completa);
     testo(s, config.arrivo + 24, SUOLO - 145, "Arrivo", 24);
 
-    const esclusi = new Set(ARENE.flatMap((arena, indice) =>
-      arene_superate.has(indice) ? arena.topi : []));
     topi_grandi ??= scegli_topi_grandi(PATTUGLIE_TOPI.length);
     nemici = crea_nemici(s, {
       meg, pattuglie: PATTUGLIE_TOPI, terreni: TERRENI, suolo: SUOLO,
-      immagine: immagini.topo, blocchi: blocchi_solidi, esclusi, bloccato,
-      grandi: topi_grandi, zone_sicure: [config.partenza, ...CHECKPOINT],
+      immagine: immagini.topo, blocchi: blocchi_solidi, bloccato,
+      grandi: topi_grandi, zone_sicure: [config.partenza, ...CHECKPOINT,
+        ...(config.venditrice ? [config.venditrice.x + 130] : [])],
       on_contatto: topo => tocca_topo(s, topo),
-      on_morte: topo => { lascia_moneta(s, topo); aggiorna_cancelli(); },
+      on_morte: topo => lascia_moneta(s, topo),
     });
-    crea_cancelli(s);
     PP.camera.set_bounds(s, 0, 0, LUNGHEZZA, ALTEZZA);
     PP.camera.start_follow(s, meg, -180, 0);
     abilita = crea_abilita_meg(s, {
       meg, topi: nemici.elenco, bloccato, danneggia: nemici.danneggia,
       immagine_padella: immagini["padella-24"],
-      ostacoli: () => [...blocchi_solidi,
-        ...cancelli.filter(c => !arene_superate.has(c.indice)).map(c => c.corpo)],
+      ostacoli: () => blocchi_solidi,
     });
     hud = crea_hud(s, { immagini, pausa });
     hud.mostra_istruzioni(istruzioni_visibili);
@@ -175,56 +173,29 @@ export function registra_livello(config) {
     }
   }
 
-// I cancelli occupano tutta l'altezza fisica del mondo e si aprono solo
-// dopo la sconfitta dei topi associati. Nessuna collisione con monete o topi.
-
-  function crea_cancelli(s) {
-    for (const [indice, arena] of ARENE.entries()) {
-      if (arene_superate.has(indice)) continue;
-      const corpo = rettangolo_fisico(s, arena.x, -400, 24, SUOLO + 400, COLORI.pericolo);
-      PP.physics.add_collider(s, meg, corpo);
-      const luci = arena.topi.map((id, i) => PP.shapes.rectangle_add(s,
-        arena.x + 12, SUOLO - 70 - i * 30, 12, 12, COLORI.checkpoint, 1));
-      cancelli.push({ indice, corpo, luci });
-    }
-  }
-
-  function aggiorna_cancelli() {
-    for (const cancello of cancelli) {
-      if (arene_superate.has(cancello.indice)) continue;
-      const id_nemici = ARENE[cancello.indice].topi;
-      id_nemici.forEach((id, i) => {
-        cancello.luci[i].visibility.alpha = nemici.per_id.get(id).vita > 0 ? 1 : 0.15;
-      });
-      if (id_nemici.every(id => nemici.per_id.get(id).vita <= 0)) {
-        arene_superate.add(cancello.indice);
-        PP.shapes.destroy(cancello.corpo);
-        for (const luce of cancello.luci) PP.shapes.destroy(luce);
-      }
-    }
-  }
-
   function azzera_esplorazione() {
     topi_grandi = null;
-    arene_superate.clear();
     reliquie_raccolte.clear();
     monete_esplorazione_raccolte.clear();
   }
 
   function crea_portale_mercato(s) {
-    // Meg nasce a x = 70: il portale termina a x = 44, prima della sua hitbox.
-    PP.shapes.rectangle_add(s, 30, SUOLO - 56,
-      34, 120, "0xB59AE8", 1);
-    const portale = rettangolo_fisico(s, 16, SUOLO - 110,
-      28, 110, "0x66518A");
-    testo(s, 65, SUOLO - 140, "Mercato", 22);
-    PP.physics.add_overlap_f(s, meg, portale, () => {
-      if (transizione || dialogo?.attivo) return;
-      transizione = true;
-      abilita.termina();
-      PP.game_state.set_variable("ritorno_mercato", nome);
-      PP.scenes.start("mercato");
-    });
+    for (const zona of config.zone || [{ inizio: 0 }]) {
+      const x = zona.inizio + 30;
+      PP.shapes.rectangle_add(s, x, SUOLO - 56, 34, 120, "0xB59AE8", 1);
+      const portale = rettangolo_fisico(s, x - 14, SUOLO - 110,
+        28, 110, "0x66518A");
+      testo(s, x + 35, SUOLO - 140, "Mercato", 22);
+      const mercato = { x, disponibile: false };
+      mercati.push(mercato);
+      PP.physics.add_overlap_f(s, meg, portale, () => {
+        if (bloccato() || PP.scenes.in_overlay_mode || !mercato_pronto || !mercato.disponibile) return;
+        // Dopo Sì/No occorre allontanarsi prima di riproporre la domanda.
+        mercato.disponibile = false;
+        esc_rilasciato = false;
+        PP.scenes.start_overlay("mercato");
+      });
+    }
   }
 
   function crea_amico(s) {
@@ -335,7 +306,7 @@ export function registra_livello(config) {
   }
 
   function completa() {
-    if (transizione || game_over || arene_superate.size < ARENE.length) return;
+    if (transizione || game_over) return;
     abilita.termina();
     // Le monete del tentativo diventano definitive soltanto raggiungendo l'arrivo.
     monete_tentativo = 0;
@@ -345,7 +316,7 @@ export function registra_livello(config) {
     vite = VITE_MAX;
     istruzioni_visibili = true;
     dialogo_finito = false;
-    PP.scenes.start("menu");
+    PP.scenes.start("crediti");
   }
 
   function pausa() {
@@ -389,6 +360,12 @@ export function registra_livello(config) {
   }
 
   function update(s) {
+    const movimento_premuto = [PP.key_codes.LEFT, PP.key_codes.A,
+      PP.key_codes.RIGHT, PP.key_codes.D].some(tasto => PP.interactive.kb.is_key_down(s, tasto));
+    if (!movimento_premuto) mercato_pronto = true;
+    for (const mercato of mercati) {
+      if (Math.abs(meg.geometry.x - mercato.x) > 70) mercato.disponibile = true;
+    }
     if (!PP.interactive.kb.is_key_down(s, PP.key_codes.ESC)) esc_rilasciato = true;
     if (esc_rilasciato && PP.interactive.kb.is_key_just_down(s, PP.key_codes.ESC)) {
       pausa();

@@ -1,9 +1,11 @@
 import { LARGHEZZA, ALTEZZA } from "../config.js";
-import { VELOCITA, SALTO, COOLDOWN_DOPPIO_SALTO,
+import { A_MEG, VELOCITA, SALTO, COOLDOWN_DOPPIO_SALTO,
   COOLDOWN_LANCIO, COOLDOWN_MELEE, DURATA_MELEE, VELOCITA_PADELLA,
   DURATA_RIENTRO_PADELLA, DANNO_ATTACCO, COLORI } from "./config.js";
 
 export function crea_abilita_meg(s, { meg, topi, ostacoli, bloccato, danneggia, immagine_padella }) {
+  // Mantiene i colpi a 22 px dal suolo anche con la nuova altezza di Meg.
+  const quota_padella = A_MEG / 2 - 22;
   let direzione_meg = 1;
   let recupero_melee = 0;
   let recupero_lancio = 0;
@@ -21,7 +23,7 @@ export function crea_abilita_meg(s, { meg, topi, ostacoli, bloccato, danneggia, 
     return skin;
   }
 
-  const padella_in_mano = crea_skin_padella(meg.geometry.x + 34, meg.geometry.y + 10, 40, 1);
+  const padella_in_mano = crea_skin_padella(meg.geometry.x + 34, meg.geometry.y + quota_padella, 40, 1);
   let distrutta = false;
 
   function aggiorna_skin() {
@@ -30,7 +32,7 @@ export function crea_abilita_meg(s, { meg, topi, ostacoli, bloccato, danneggia, 
     const direzione = colpo_melee ? colpo_melee.direzione : direzione_meg;
     const lunghezza = colpo_melee ? 64 : 40;
     padella_in_mano.geometry.x = meg.geometry.x + direzione * (colpo_melee ? 48 : 34);
-    padella_in_mano.geometry.y = meg.geometry.y + 10;
+    padella_in_mano.geometry.y = meg.geometry.y + quota_padella;
     padella_in_mano.geometry.scale_x = lunghezza / 990;
     padella_in_mano.geometry.scale_y = lunghezza / 990;
     padella_in_mano.geometry.angle = direzione > 0 ? 90 : 270;
@@ -40,7 +42,7 @@ export function crea_abilita_meg(s, { meg, topi, ostacoli, bloccato, danneggia, 
     if (padella_lanciata || !colpo_melee || colpo_melee.colpiti.has(topo.id)) return false;
     const x = meg.geometry.x + colpo_melee.direzione * 48;
     return Math.abs(topo.corpo.geometry.x - x) < 32 + topo.larghezza / 2
-      && Math.abs(topo.corpo.geometry.y - (meg.geometry.y + 10)) < 23 + topo.altezza / 2;
+      && Math.abs(topo.corpo.geometry.y - (meg.geometry.y + quota_padella)) < 23 + topo.altezza / 2;
   }
 
   function attacca_melee(s) {
@@ -112,14 +114,14 @@ export function crea_abilita_meg(s, { meg, topi, ostacoli, bloccato, danneggia, 
       // Rientra dal bordo attuale della camera, anche se Meg si è spostata.
       lancio.skin.geometry.x = lancio.direzione > 0 ? vista.destra + 30 : vista.sinistra - 30;
       lancio.skin.geometry.y = Math.max(vista.sopra + 20,
-        Math.min(vista.sotto - 20, meg.geometry.y + 10));
+        Math.min(vista.sotto - 20, meg.geometry.y + quota_padella));
       lancio.skin.visibility.hidden = false;
     }
     if (lancio.fase === "ritorno") {
       const frazione = Math.min(1, delta / (recupero_lancio + delta));
       const mano_x = meg.geometry.x + direzione_meg * 34;
       lancio.skin.geometry.x += (mano_x - lancio.skin.geometry.x) * frazione;
-      lancio.skin.geometry.y += (meg.geometry.y + 10 - lancio.skin.geometry.y) * frazione;
+      lancio.skin.geometry.y += (meg.geometry.y + quota_padella - lancio.skin.geometry.y) * frazione;
       for (const topo of topi) {
         if (topo.vita <= 0 || lancio.colpiti_ritorno.has(topo.id) || !visibile(topo.corpo)) continue;
         if (Math.abs(topo.corpo.geometry.x - lancio.skin.geometry.x) >= 15 + topo.larghezza / 2
@@ -137,7 +139,7 @@ export function crea_abilita_meg(s, { meg, topi, ostacoli, bloccato, danneggia, 
     recupero_lancio = COOLDOWN_LANCIO;
     colpo_melee = null;
     const corpo = PP.shapes.rectangle_add(s, meg.geometry.x + direzione_meg * 30,
-      meg.geometry.y + 10, 30, 24, COLORI.moneta, 0);
+      meg.geometry.y + quota_padella, 30, 24, COLORI.moneta, 0);
     PP.physics.add(s, corpo, PP.physics.type.DYNAMIC);
     PP.physics.set_allow_gravity(corpo, false);
     PP.physics.set_velocity_x(corpo, direzione_meg * VELOCITA_PADELLA);
@@ -148,7 +150,7 @@ export function crea_abilita_meg(s, { meg, topi, ostacoli, bloccato, danneggia, 
     };
     padella_lanciata = lancio;
     aggiorna_skin();
-    // Attraversa i nemici, ma viene fermata da terreno, soffitti e cancelli chiusi.
+    // Attraversa i nemici, ma viene fermata da terreno e soffitti.
     for (const blocco of ostacoli()) {
       lancio.collisioni.push(PP.physics.add_collider_f(s, corpo, blocco, () => {
         if (padella_lanciata === lancio) attendi_rientro(lancio);
@@ -170,7 +172,7 @@ export function crea_abilita_meg(s, { meg, topi, ostacoli, bloccato, danneggia, 
   function aggiorna_melee(s) {
     if (!colpo_melee) return;
     colpo_melee.corpo.geometry.x = meg.geometry.x + colpo_melee.direzione * 48;
-    colpo_melee.corpo.geometry.y = meg.geometry.y + 10;
+    colpo_melee.corpo.geometry.y = meg.geometry.y + quota_padella;
     for (const topo of topi) {
       if (topo.vita <= 0 || !colpisce_melee(topo)) continue;
       colpo_melee.colpiti.add(topo.id);

@@ -28,18 +28,19 @@ export function crea_nemici(s, { meg, pattuglie: PATTUGLIE_TOPI, terreni: TERREN
       const terreno = TERRENI.find(([inizio, larghezza]) =>
         posizione_iniziale >= inizio && posizione_iniziale <= inizio + larghezza);
       if (!terreno) throw new Error("Pattuglia topo senza terreno sottostante.");
-      let minimo = Math.max(inizio_pattuglia,
-        terreno[0] + larghezza / 2 + MARGINE_BUCO_TOPO);
-      let massimo = Math.min(fine_pattuglia,
-        terreno[0] + terreno[1] - larghezza / 2 - MARGINE_BUCO_TOPO);
-      // La hitbox più grande non deve invadere spawn e checkpoint.
+      // La coppia configurata individua lo spawn; la pattuglia si estende
+      // sul terreno disponibile, senza attraversare vuoti o punti sicuri.
+      let minimo = terreno[0] + larghezza / 2 + MARGINE_BUCO_TOPO;
+      let massimo = terreno[0] + terreno[1] - larghezza / 2 - MARGINE_BUCO_TOPO;
+      // La hitbox più grande non deve invadere spawn, venditrice e checkpoint.
       const distanza_sicura = L_MEG / 2 + larghezza / 2 + MARGINE_BUCO_TOPO;
       for (const x of zone_sicure) {
-        if (x < inizio_pattuglia) minimo = Math.max(minimo, x + distanza_sicura);
-        else if (x > fine_pattuglia) massimo = Math.min(massimo, x - distanza_sicura);
+        if (x <= posizione_iniziale) minimo = Math.max(minimo, x + distanza_sicura);
+        else massimo = Math.min(massimo, x - distanza_sicura);
       }
       if (minimo > massimo) throw new Error("Spazio insufficiente per la pattuglia del topo.");
-      const corpo = PP.shapes.rectangle_add(s, (minimo + massimo) / 2,
+      const spawn = Math.max(minimo, Math.min(massimo, posizione_iniziale));
+      const corpo = PP.shapes.rectangle_add(s, spawn,
         SUOLO - altezza / 2, larghezza, altezza, "0xBB8A78", 1);
       const skin = PP.assets.image.add(s, immagine_topo,
         corpo.geometry.x, corpo.geometry.y - altezza / 2, 0.5, 0.5);

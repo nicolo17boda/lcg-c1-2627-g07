@@ -112,6 +112,7 @@ PP.scenes.add("storia", () => {}, crea_storia, () => {}, () => {});
 const ORO_CREDITI = "0xE9BD68";
 let righe_crediti = [];
 let scorrimento_crediti = 0;
+let ritorno_crediti_programmato = false;
 const FINE_CREDITI = 1480;
 const CENTRO_CREDITI = 300;
 
@@ -121,6 +122,7 @@ function crea_crediti(s) {
     LARGHEZZA, ALTEZZA, "0x080D16", 0.65);
   righe_crediti = [];
   scorrimento_crediti = 0;
+  ritorno_crediti_programmato = false;
 
   function riga(y, contenuto, dimensione, titolo = false, colore = BIANCO) {
     const oggetto = PP.shapes.text_styled_add(s, LARGHEZZA / 2, y,
@@ -176,6 +178,11 @@ function aggiorna_crediti(s) {
   scorrimento_crediti = Math.min(FINE_CREDITI - CENTRO_CREDITI,
     scorrimento_crediti + velocita / PP.game.get_physics_fps(s));
   posiziona_crediti();
+  if (scorrimento_crediti === FINE_CREDITI - CENTRO_CREDITI && !ritorno_crediti_programmato) {
+    ritorno_crediti_programmato = true;
+    // Timer della scena: uscendo prima, Phaser lo elimina insieme ai crediti.
+    PP.timers.add_timer(s, 5000, () => PP.scenes.start("menu"), false);
+  }
 }
 
 function distruggi_crediti(s) {
