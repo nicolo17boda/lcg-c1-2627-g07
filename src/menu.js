@@ -109,23 +109,78 @@ function crea_storia(s) {
 
 PP.scenes.add("storia", () => {}, crea_storia, () => {}, () => {});
 
+const ORO_CREDITI = "0xE9BD68";
+let righe_crediti = [];
+let scorrimento_crediti = 0;
+const FINE_CREDITI = 1480;
+const CENTRO_CREDITI = 300;
+
 function crea_crediti(s) {
   crea_sfondo(s);
-  testo(s, LARGHEZZA / 2, 110, "Crediti", 64, FONT_TITOLO);
-  testo(s, LARGHEZZA / 2, 200, "Politecnico di Milano", 30);
-  testo(s, LARGHEZZA / 2, 245, "Laboratorio di Game Design · Gruppo 07", 24);
-  const autori = ["Nicolò Boda", "Cecilia Colombo", "Carolina Sacco", "Caterina Villa"];
-  autori.forEach((nome, indice) => {
-    testo(s, LARGHEZZA / 2, 325 + indice * 48, nome, 30);
-  });
-  crea_bottone(s, 590, "Torna al menu", () => PP.scenes.start("menu"));
+  PP.shapes.rectangle_add(s, LARGHEZZA / 2, ALTEZZA / 2,
+    LARGHEZZA, ALTEZZA, "0x080D16", 0.65);
+  righe_crediti = [];
+  scorrimento_crediti = 0;
+
+  function riga(y, contenuto, dimensione, titolo = false, colore = BIANCO) {
+    const oggetto = PP.shapes.text_styled_add(s, LARGHEZZA / 2, y,
+      contenuto, dimensione, titolo ? FONT_TITOLO : FONT,
+      "normal", colore, null, 0.5, 0.5);
+    adatta_testo(oggetto, LARGHEZZA - 160, dimensione * 1.5);
+    righe_crediti.push({ oggetto, y });
+  }
+
+  riga(160, "UN GIOCO DEL GRUPPO 07", 18, false, ORO_CREDITI);
+  riga(240, "La Mamma", 76, true);
+  riga(320, "dell'Ammazzadraghi", 76, true);
+  riga(500, "CREATO DA", 20, false, ORO_CREDITI);
+  ["Nicolò Boda", "Cecilia Colombo", "Carolina Sacco", "Caterina Villa"]
+    .forEach((nome, indice) => riga(575 + indice * 66, nome, 36));
+  riga(970, "POLITECNICO DI MILANO", 22, false, ORO_CREDITI);
+  riga(1040, "Laboratorio di Game Design", 28);
+  riga(1100, "Gruppo 07", 26);
+  riga(FINE_CREDITI, "Grazie per aver giocato", 60, true, ORO_CREDITI);
+
+  // Comandi fissi, separati dai titoli che scorrono sullo sfondo.
+  PP.shapes.rectangle_add(s, LARGHEZZA / 2, 665,
+    LARGHEZZA, 110, "0x080D16", 1);
+  PP.shapes.rectangle_add(s, LARGHEZZA / 2, 610,
+    420, 1, ORO_CREDITI, 0.45);
+  testo(s, LARGHEZZA / 2, 634, "Tieni premuto Spazio per accelerare · Esc per uscire", 17);
+  const uscita = PP.shapes.rectangle_add(s, LARGHEZZA / 2, 680,
+    260, 42, COLORE_BOTTONE, 1);
+  testo(s, LARGHEZZA / 2, 680, "Torna al menu", 22);
+  PP.interactive.mouse.add(uscita, "pointerdown", () => PP.scenes.start("menu"));
+  PP.interactive.mouse.add(uscita, "pointerover", () => { uscita.visibility.alpha = 0.7; });
+  PP.interactive.mouse.add(uscita, "pointerout", () => { uscita.visibility.alpha = 1; });
+  posiziona_crediti();
+}
+
+function posiziona_crediti() {
+  for (const { oggetto, y } of righe_crediti) {
+    const posizione = y - scorrimento_crediti;
+    oggetto.geometry.y = posizione;
+    // Entrata e uscita graduali, senza tagliare bruscamente le righe.
+    oggetto.visibility.alpha = Math.max(0, Math.min(1,
+      (posizione - 45) / 70, (590 - posizione) / 70));
+  }
 }
 
 function aggiorna_crediti(s) {
   update(s);
   if (PP.interactive.kb.is_key_just_down(s, PP.key_codes.ESC)) {
     PP.scenes.start("menu");
+    return;
   }
+  const velocita = PP.interactive.kb.is_key_down(s, PP.key_codes.SPACE) ? 150 : 36;
+  scorrimento_crediti = Math.min(FINE_CREDITI - CENTRO_CREDITI,
+    scorrimento_crediti + velocita / PP.game.get_physics_fps(s));
+  posiziona_crediti();
 }
 
-PP.scenes.add("crediti", preload, crea_crediti, aggiorna_crediti, destroy);
+function distruggi_crediti(s) {
+  righe_crediti = [];
+  destroy(s);
+}
+
+PP.scenes.add("crediti", preload, crea_crediti, aggiorna_crediti, distruggi_crediti);

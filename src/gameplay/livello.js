@@ -21,6 +21,7 @@ export function registra_livello(config) {
   } = config;
   let meg, nemici, abilita, hud, dialogo, monete_visive;
   let skin_meg;
+  let sfondi_zone = [];
   let partenza = config.partenza;
   let vite = VITE_MAX;
   let istruzioni_visibili = true;
@@ -40,7 +41,7 @@ export function registra_livello(config) {
   const bloccato = () => transizione || game_over || Boolean(dialogo?.attivo);
 
   function preload(s) {
-    for (const nome of ["cuore", "moneta", "topo", "padella-24",
+    for (const nome of ["cuore", "moneta", "topo", "padella-24", "provasfondo1",
       "terreni-01", "terreni-02", "terreni-03", "terra paese", "meg-24", "index"]) {
       immagini[nome] = PP.assets.image.load(s, "assets/images/" + nome + ".png");
     }
@@ -211,11 +212,11 @@ export function registra_livello(config) {
   }
 
   function crea_portale_mercato(s) {
-    // Meg nasce a x = 140: il portale termina a x = 88, senza sovrapporsi.
-    PP.shapes.rectangle_add(s, 60, SUOLO - 56,
-      68, 120, "0xB59AE8", 1);
-    const portale = rettangolo_fisico(s, 32, SUOLO - 110,
-      56, 110, "0x66518A");
+    // Meg nasce a x = 70: il portale termina a x = 44, prima della sua hitbox.
+    PP.shapes.rectangle_add(s, 30, SUOLO - 56,
+      34, 120, "0xB59AE8", 1);
+    const portale = rettangolo_fisico(s, 16, SUOLO - 110,
+      28, 110, "0x66518A");
     testo(s, 65, SUOLO - 140, "Mercato", 22);
     PP.physics.add_overlap_f(s, meg, portale, () => {
       if (transizione || dialogo?.attivo) return;
@@ -230,8 +231,8 @@ export function registra_livello(config) {
     const altezza_venditrice = 28 * 4;
     crea_skin_personaggio(s, immagini.index, config.venditrice.x, SUOLO, altezza_venditrice);
     testo(s, config.venditrice.x, SUOLO - altezza_venditrice - 26, "Venditrice", 24);
-    const zona = rettangolo_fisico(s, config.venditrice.x - 130, SUOLO - 240,
-      250, 240, COLORI.checkpoint);
+    const zona = rettangolo_fisico(s, config.venditrice.x - 65, SUOLO - 240,
+      125, 240, COLORI.checkpoint);
     zona.visibility.alpha = 0;
     PP.physics.add_overlap_f(s, meg, zona, () => {
       if (dialogo_finito || dialogo?.attivo || transizione) return;
@@ -240,21 +241,32 @@ export function registra_livello(config) {
   }
 
   function crea_sfondo(s) {
-    const cielo = PP.shapes.rectangle_add(s, LARGHEZZA / 2, ALTEZZA / 2,
+    const fondo = PP.shapes.rectangle_add(s, LARGHEZZA / 2, ALTEZZA / 2,
       LARGHEZZA, ALTEZZA, COLORI.sfondo, 1);
-    fissa(cielo);
-    // Sagome decorative geometriche, senza collisioni né texture.
-    for (let i = 0; i < Math.ceil(LUNGHEZZA / 280); i++) {
-      const altezza = 140 + (i % 4) * 50;
-      PP.shapes.rectangle_add(s, i * 280, SUOLO - altezza / 2,
-        180, altezza, COLORI.lontano, 1);
+    fissa(fondo);
+    sfondi_zone = [];
+    for (const zona of config.zone || []) {
+      if (!zona.sfondo) continue;
+      const sfondo = PP.assets.image.add(s, immagini[zona.sfondo],
+        LARGHEZZA / 2, ALTEZZA / 2, 0.5, 0.5);
+      const scala = Math.max(LARGHEZZA / sfondo.geometry.display_width,
+        ALTEZZA / sfondo.geometry.display_height);
+      sfondo.geometry.scale_x = scala;
+      sfondo.geometry.scale_y = scala;
+      sfondo.visibility.hidden = partenza < zona.inizio || partenza >= zona.fine;
+      fissa(sfondo);
+      sfondi_zone.push({ zona, sfondo });
     }
   }
 
   function crea_blocco(s, x, y, larghezza, altezza, skin) {
+    const zona = config.zone?.find(zona => x >= zona.inizio && x < zona.fine);
+    if (zona && zona.skin === null) skin = null;
     const blocco = rettangolo_fisico(s, x, y, larghezza, altezza, COLORI.terreno);
-    blocco.visibility.alpha = 0;
-    disegna_terreno(s, skin, x, y, larghezza, altezza);
+    if (skin) {
+      blocco.visibility.alpha = 0;
+      disegna_terreno(s, skin, x, y, larghezza, altezza);
+    }
     PP.physics.add_collider(s, meg, blocco);
     blocchi_solidi.push(blocco);
   }
@@ -368,6 +380,9 @@ export function registra_livello(config) {
   }
 
   function aggiorna_skin_meg() {
+    for (const { zona, sfondo } of sfondi_zone) {
+      sfondo.visibility.hidden = meg.geometry.x < zona.inizio || meg.geometry.x >= zona.fine;
+    }
     skin_meg.setPosition(meg.geometry.x, meg.geometry.y + A_MEG / 2);
     const velocita = PP.physics.get_velocity_x(meg);
     if (velocita !== 0) skin_meg.setFlipX(velocita < 0);

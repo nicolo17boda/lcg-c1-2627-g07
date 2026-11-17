@@ -1,28 +1,37 @@
 import { registra_livello } from "../gameplay/livello.js";
 
-// Coordinate, incontri e dialoghi specifici del livello 1.
-const SPAZIO_INIZIALE = 600;
-const LUNGHEZZA = 10000;
-const PATTUGLIE_TOPI = [[760, 1040], [1980, 2170], [2920, 3100], [3750, 3990],
-  [4750, 4950], [5480, 5660], [6150, 6400], [7350, 7540], [7760, 7990],
-  [8660, 8930], [9400, 9520], [9620, 9730]];
+// Un unico livello continuo: ogni zona occupa 5.000 px.
+const SPAZIO_INIZIALE = 300;
+const LUNGHEZZA_ZONA = 5000;
+const LUNGHEZZA = LUNGHEZZA_ZONA * 4;
+const ZONE = [
+  { inizio: 0, fine: 5000, skin: "paese", sfondo: "provasfondo1" },
+  { inizio: 5000, fine: 10000, skin: null, sfondo: null },
+  { inizio: 10000, fine: 15000, skin: null, sfondo: null },
+  { inizio: 15000, fine: 20000, skin: null, sfondo: null },
+];
+const PATTUGLIE_TOPI = [[380, 520], [990, 1085], [1460, 1550], [1875, 1995],
+  [2375, 2475], [2740, 2830], [3075, 3200], [3675, 3770], [3880, 3995],
+  [4330, 4465], [4700, 4760], [4810, 4865]];
 const SUOLO = 620;
-const DISTANZA_ISTRUZIONI = 400 + SPAZIO_INIZIALE;
+const DISTANZA_ISTRUZIONI = 200 + SPAZIO_INIZIALE;
 const TERRENI = [
-  [0, 780 + SPAZIO_INIZIALE],
-  [960 + SPAZIO_INIZIALE, 700],
-  [1840 + SPAZIO_INIZIALE, 720],
-  [2740 + SPAZIO_INIZIALE, 860],
-  [4580, 500], [5380, 420], [6060, 540], [7140, 1260],
-  [8580, 500], [9280, 720],
+  [0, 390 + SPAZIO_INIZIALE],
+  [480 + SPAZIO_INIZIALE, 350],
+  [920 + SPAZIO_INIZIALE, 360],
+  [1370 + SPAZIO_INIZIALE, 430],
+  [2290, 250], [2690, 210], [3030, 270], [3570, 630],
+  [4290, 250], [4640, 360],
+  // Appoggi provvisori per attraversare le tre zone ancora da costruire.
+  ...ZONE.slice(1).map(zona => [zona.inizio, zona.fine - zona.inizio]),
 ];
 const PIATTAFORME = [
-  [980, 510, 140], [1200, 415, 130], [1440, 525, 100],
-  [1770, 505, 150], [2320, 525, 100],
-  [2670, 510, 150], [2910, 410, 140], [3220, 525, 100],
-  [3550, 510, 150], [3780, 410, 140],
+  [490, 510, 70], [600, 415, 65], [720, 525, 50],
+  [885, 505, 75], [1160, 525, 50],
+  [1335, 510, 75], [1455, 410, 70], [1610, 525, 50],
+  [1775, 510, 75], [1890, 410, 70],
   // Belvedere: deviazione sopra la prima pattuglia, poi ritorno al percorso.
-  [1470, 310, 120], [1690, 215, 170], [1930, 300, 100],
+  [735, 310, 60], [845, 215, 85], [965, 300, 50],
   // Gola: appoggi stretti e quote alternate; ogni appoggio permette di ricaricare.
   [4210, 530, 90], [4400, 450, 85], [4610, 360, 110],
   [4860, 260, 150], [5100, 370, 90], [5210, 520, 85],
@@ -33,24 +42,24 @@ const PIATTAFORME = [
   [7010, 510, 80],
   [8430, 530, 80], [9130, 520, 85],
 ];
-const CHECKPOINT = [1660, 2540, 3440, 4080, 5420, 6100, 7190, 8280, 9320];
+const CHECKPOINT = [830, 1270, 1720, 2040, 2710, 3050, 3595, 4140, 4660];
 const RELIQUIE = [
-  { x: 1775, y: 180 },
-  { x: 4935, y: 225 },
-  { x: 6510, y: 155 },
+  { x: 887.5, y: 180 },
+  { x: 2467.5, y: 225 },
+  { x: 3255, y: 155 },
 ];
 const MONETE_ESPLORAZIONE = [
-  [1510, 278], [1710, 183], [1960, 268],
-  [4440, 418], [4650, 328], [4890, 228], [5140, 338],
-  [6200, 238], [6410, 348], [6470, 158],
-  [6870, 388], [8470, 498], [9170, 488],
+  [755, 278], [855, 183], [980, 268],
+  [2220, 418], [2325, 328], [2445, 228], [2570, 338],
+  [3100, 238], [3205, 348], [3235, 158],
+  [3435, 388], [4235, 498], [4585, 488],
 ];
-const SOFFITTI = [[2040, 210], [5440, 350], [7290, 870], [9360, 440]];
+const SOFFITTI = [[1020, 105], [2720, 175], [3645, 435], [4680, 220]];
 const ARENE = [
-  { x: 2220, topi: [1] },
-  { x: 5780, topi: [5] },
-  { x: 8160, topi: [7, 8] },
-  { x: 9780, topi: [10, 11] },
+  { x: 1110, topi: [1] },
+  { x: 2890, topi: [5] },
+  { x: 4080, topi: [7, 8] },
+  { x: 4890, topi: [10, 11] },
 ];
 const BATTUTE = [
   ["Venditrice", "La strada è lunga. Fai attenzione ai passaggi stretti."],
@@ -60,11 +69,12 @@ const BATTUTE = [
 ];
 
 registra_livello({
-  nome: "livello1", partenza: 140, arrivo: 9860,
+  nome: "livello1", partenza: 70, arrivo: LUNGHEZZA - 70,
+  zone: ZONE,
   skin_terreni: "paese",
-  lunghezza: LUNGHEZZA, suolo: SUOLO, fine_istruzioni: 140 + DISTANZA_ISTRUZIONI,
+  lunghezza: LUNGHEZZA, suolo: SUOLO, fine_istruzioni: 70 + DISTANZA_ISTRUZIONI,
   terreni: TERRENI, piattaforme: PIATTAFORME, soffitti: SOFFITTI,
   checkpoint: CHECKPOINT, reliquie: RELIQUIE,
   monete: MONETE_ESPLORAZIONE, pattuglie: PATTUGLIE_TOPI, arene: ARENE,
-  venditrice: { x: 440, battute: BATTUTE }, mercato: true,
+  venditrice: { x: 220, battute: BATTUTE }, mercato: true,
 });
