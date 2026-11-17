@@ -4,6 +4,7 @@ export function prepara_skin_terreni(s, immagini) {
   const skin = {};
   for (const [tipo, nome] of Object.entries({
     roccia: "terreni-01", piattaforma: "terreni-02", suolo: "terreni-03",
+    paese: "terra paese",
   })) {
     const chiave = nome + "-ritaglio";
     if (!s.textures.exists(chiave)) {
@@ -43,6 +44,8 @@ export function prepara_skin_terreni(s, immagini) {
 
 export function disegna_terreno(s, chiave, x, y, larghezza, altezza) {
   // Ripeti la striscia invece di allungarla: i pixel mantengono le proporzioni.
+  // Terra paese è già esportata alla risoluzione di gioco.
+  const scala = chiave === "terra paese-ritaglio" ? 1 : 0.25;
   return s.add.tileSprite(x, y, larghezza, altezza, chiave)
-    .setOrigin(0, 0).setTileScale(0.25, 0.25);
+    .setOrigin(0, 0).setTileScale(scala, scala);
 }

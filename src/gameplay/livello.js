@@ -4,11 +4,11 @@ import { L_MEG, A_MEG, DIMENSIONE_MONETA, RIMBALZO_TOPO, VITE_MAX, COLORI } from
 import { rettangolo_fisico, fissa, testo } from "./grafica.js";
 import { crea_abilita_meg } from "./abilita_meg.js";
 import { crea_nemici, scegli_topi_grandi } from "./nemici.js";
-import { crea_notifiche_achievement } from "./notifiche_achievement.js";
 import { crea_monete } from "./monete.js";
 import { crea_dialogo } from "./dialogo.js";
 import { crea_hud, crea_game_over } from "./hud.js";
 import { prepara_skin_terreni, disegna_terreno } from "./terreni.js";
+import { crea_skin_personaggio } from "./personaggi.js";
 
 // Ogni chiamata registra una scena con stato indipendente. Solo questi progressi
 // sopravvivono ai riavvii: checkpoint, vite, raccolte e arene già superate.
@@ -18,7 +18,8 @@ export function registra_livello(config) {
     checkpoint: CHECKPOINT = [], spine: SPINE = [], reliquie: RELIQUIE = [],
     monete: MONETE_ESPLORAZIONE = [], pattuglie: PATTUGLIE_TOPI = [], arene: ARENE = [],
   } = config;
-  let meg, nemici, abilita, hud, dialogo, monete_visive, notifiche;
+  let meg, nemici, abilita, hud, dialogo, monete_visive;
+  let skin_meg;
   let partenza = config.partenza;
   let vite = VITE_MAX;
   let istruzioni_visibili = true;
@@ -38,8 +39,8 @@ export function registra_livello(config) {
   const bloccato = () => transizione || game_over || Boolean(dialogo?.attivo);
 
   function preload(s) {
-    for (const nome of ["cuore", "mappa", "moneta", "topo", "padella",
-      "terreni-01", "terreni-02", "terreni-03"]) {
+    for (const nome of ["cuore", "mappa", "moneta", "topo", "padella-24",
+      "terreni-01", "terreni-02", "terreni-03", "terra paese", "meg-24", "index"]) {
       immagini[nome] = PP.assets.image.load(s, "assets/images/" + nome + ".png");
     }
   }
@@ -62,6 +63,11 @@ export function registra_livello(config) {
     meg = PP.shapes.rectangle_add(s, partenza, SUOLO - A_MEG / 2,
       L_MEG, A_MEG, COLORI.meg, 1);
     PP.physics.add(s, meg, PP.physics.type.DYNAMIC);
+    meg.visibility.alpha = 0;
+    // Altezza della skin: 27 quadratini da 4 px.
+    skin_meg = crea_skin_personaggio(s, immagini["meg-24"], partenza, SUOLO, 27 * 4);
+    s.events.on("postupdate", aggiorna_skin_meg);
+    s.events.once("shutdown", () => s.events.off("postupdate", aggiorna_skin_meg));
     // Il limite inferiore resta sotto lo schermo per consentire la caduta nei vuoti.
     PP.physics.set_world_bounds(s, 0, -400, LUNGHEZZA, ALTEZZA + 900);
     PP.physics.set_collide_world_bounds(meg, true);
@@ -107,7 +113,7 @@ export function registra_livello(config) {
     PP.camera.start_follow(s, meg, -180, 0);
     abilita = crea_abilita_meg(s, {
       meg, topi: nemici.elenco, bloccato, danneggia: nemici.danneggia,
-      immagine_padella: immagini.padella,
+      immagine_padella: immagini["padella-24"],
       ostacoli: () => [...blocchi_solidi,
         ...cancelli.filter(c => !arene_superate.has(c.indice)).map(c => c.corpo)],
     });
@@ -132,7 +138,6 @@ export function registra_livello(config) {
       crea_amico(s);
     }
     crea_esplorazione(s);
-    notifiche = crea_notifiche_achievement(s);
   }
 
   function crea_esplorazione(s) {
@@ -222,8 +227,7 @@ export function registra_livello(config) {
   }
 
   function crea_amico(s) {
-    PP.shapes.rectangle_add(s, config.venditrice.x, SUOLO - 32,
-      44, 64, COLORI.checkpoint, 1);
+    crea_skin_personaggio(s, immagini.index, config.venditrice.x, SUOLO, 64);
     testo(s, config.venditrice.x, SUOLO - 90, "Venditrice", 24);
     const zona = rettangolo_fisico(s, config.venditrice.x - 130, SUOLO - 240,
       250, 240, COLORI.checkpoint);
@@ -354,10 +358,15 @@ export function registra_livello(config) {
       salto: abilita.frazione_salto, lancio: abilita.frazione_lancio });
   }
 
+  function aggiorna_skin_meg() {
+    skin_meg.setPosition(meg.geometry.x, meg.geometry.y + A_MEG / 2);
+    const velocita = PP.physics.get_velocity_x(meg);
+    if (velocita !== 0) skin_meg.setFlipX(velocita < 0);
+  }
+
   function update(s) {
     monete_visive?.aggiorna();
     abilita?.aggiorna_skin();
-    if (!transizione && !dialogo?.attivo) notifiche?.aggiorna(1000 / PP.game.get_physics_fps(s));
     if (transizione || game_over) return;
     nemici.aggiorna();
     piedi_meg_precedenti = meg.geometry.y + A_MEG / 2;
@@ -384,9 +393,9 @@ export function registra_livello(config) {
     if (meg.geometry.y > ALTEZZA + A_MEG) riprova(s);
   }
 
-  function destroy() {
+  function destroy(s) {
+    s.events.off("postupdate", aggiorna_skin_meg);
     abilita?.distruggi();
-    notifiche?.distruggi();
   }
 
   PP.scenes.add(nome, preload, create, update, destroy);

@@ -1,6 +1,5 @@
 import {LARGHEZZA, ALTEZZA, font as FONT, font_titolo as FONT_TITOLO} from "./config.js";
 import "./menu.js";
-import "./scenes/achievement.js";
 import "./scenes/livello1.js";
 import "./scenes/livello2.js";
 import "./scenes/livello3.js";
