@@ -13,35 +13,43 @@ export function scegli_topi_grandi(quantita, casuale = Math.random) {
 }
 
 export function crea_nemici(s, { meg, pattuglie: PATTUGLIE_TOPI, terreni: TERRENI,
-  suolo: SUOLO, immagine: immagine_topo, blocchi: blocchi_solidi,
+  suolo: SUOLO, piattaforme = [], immagine: immagine_topo, blocchi: blocchi_solidi,
   esclusi = new Set(), grandi = new Set(), zone_sicure = [], bloccato, on_contatto, on_morte }) {
   const topi = [];
   const per_id = new Map();
   function crea_topi(s) {
-    for (const [id, [inizio_pattuglia, fine_pattuglia]] of PATTUGLIE_TOPI.entries()) {
+    for (const [id, [inizio_pattuglia, fine_pattuglia, opzioni]] of PATTUGLIE_TOPI.entries()) {
       if (esclusi.has(id)) continue;
-      const grande = grandi.has(id);
+      const grande = opzioni?.grande ?? grandi.has(id);
+      const quota = opzioni?.quota ?? SUOLO;
+      const velocita = VELOCITA_TOPO * (opzioni?.velocita ?? 1);
       const larghezza = L_TOPO * (grande ? SCALA_TOPO_GRANDE : 1);
       const altezza = A_TOPO * (grande ? SCALA_TOPO_GRANDE : 1);
       const vita_max = VITA_TOPO * (grande ? 2 : 1);
       const posizione_iniziale = (inizio_pattuglia + fine_pattuglia) / 2;
-      const terreno = TERRENI.find(([inizio, larghezza]) =>
+      const superfici = quota === SUOLO ? TERRENI
+        : piattaforme.filter(([, y]) => y === quota).map(([x, , l]) => [x, l]);
+      const terreno = superfici.find(([inizio, larghezza]) =>
         posizione_iniziale >= inizio && posizione_iniziale <= inizio + larghezza);
       if (!terreno) throw new Error("Pattuglia topo senza terreno sottostante.");
-      // La coppia configurata individua lo spawn; la pattuglia si estende
-      // sul terreno disponibile, senza attraversare vuoti o punti sicuri.
+      // Le vecchie coppie usano tutto il terreno; le pattuglie configurate
+      // rispettano anche i limiti espliciti e la quota della piattaforma.
       let minimo = terreno[0] + larghezza / 2 + MARGINE_BUCO_TOPO;
       let massimo = terreno[0] + terreno[1] - larghezza / 2 - MARGINE_BUCO_TOPO;
       // La hitbox più grande non deve invadere spawn, venditrice e checkpoint.
       const distanza_sicura = L_MEG / 2 + larghezza / 2 + MARGINE_BUCO_TOPO;
-      for (const x of zone_sicure) {
+      if (opzioni) {
+        minimo = Math.max(minimo, inizio_pattuglia);
+        massimo = Math.min(massimo, fine_pattuglia);
+      }
+      for (const x of quota === SUOLO ? zone_sicure : []) {
         if (x <= posizione_iniziale) minimo = Math.max(minimo, x + distanza_sicura);
         else massimo = Math.min(massimo, x - distanza_sicura);
       }
       if (minimo > massimo) throw new Error("Spazio insufficiente per la pattuglia del topo.");
       const spawn = Math.max(minimo, Math.min(massimo, posizione_iniziale));
       const corpo = PP.shapes.rectangle_add(s, spawn,
-        SUOLO - altezza / 2, larghezza, altezza, "0xBB8A78", 1);
+        quota - altezza / 2, larghezza, altezza, "0xBB8A78", 1);
       const skin = PP.assets.image.add(s, immagine_topo,
         corpo.geometry.x, corpo.geometry.y - altezza / 2, 0.5, 0.5);
       skin.geometry.scale_x = larghezza / 1001;
@@ -52,7 +60,7 @@ export function crea_nemici(s, { meg, pattuglie: PATTUGLIE_TOPI, terreni: TERREN
       for (const blocco of blocchi_solidi) PP.physics.add_collider(s, corpo, blocco);
       const topo = {
         id, corpo, skin, minimo, massimo, grande, larghezza, altezza, vita_max,
-        direzione: 1, vita: vita_max, immune: false,
+        velocita, direzione: opzioni?.direzione ?? 1, vita: vita_max, immune: false,
         fondo_barra: PP.shapes.rectangle_add(s, 0, 0, larghezza, 8, "0x392C35", 1),
         barra: PP.shapes.rectangle_add(s, 0, 0, larghezza - 4, 4, "0x85DB9B", 1),
       };
@@ -61,7 +69,7 @@ export function crea_nemici(s, { meg, pattuglie: PATTUGLIE_TOPI, terreni: TERREN
         [minimo - larghezza / 2 - SPESSORE_BARRIERA_TOPI, 1],
         [massimo + larghezza / 2, -1],
       ]) {
-        const barriera = rettangolo_fisico(s, x, SUOLO - altezza * 3,
+        const barriera = rettangolo_fisico(s, x, quota - altezza * 3,
           SPESSORE_BARRIERA_TOPI, altezza * 3, COLORI.terreno);
         barriera.visibility.alpha = 0;
         PP.physics.add_collider_f(s, corpo, barriera, () => {
@@ -72,7 +80,8 @@ export function crea_nemici(s, { meg, pattuglie: PATTUGLIE_TOPI, terreni: TERREN
       topi.push(topo);
       per_id.set(id, topo);
       aggiorna_barra_topo(topo);
-      PP.physics.set_velocity_x(corpo, VELOCITA_TOPO);
+      skin.geometry.flip_x = topo.direzione > 0;
+      PP.physics.set_velocity_x(corpo, topo.direzione * topo.velocita);
       PP.physics.add_overlap_f(s, meg, corpo, () => on_contatto(topo));
     }
   }
@@ -104,7 +113,7 @@ export function crea_nemici(s, { meg, pattuglie: PATTUGLIE_TOPI, terreni: TERREN
       }
       if (cambia_direzione) topo.skin.geometry.flip_x = topo.direzione > 0;
       PP.physics.set_velocity_x(topo.corpo,
-        bloccato() ? 0 : topo.direzione * VELOCITA_TOPO);
+        bloccato() ? 0 : topo.direzione * topo.velocita);
       topo.skin.geometry.x = topo.corpo.geometry.x;
       topo.skin.geometry.y = topo.corpo.geometry.y - topo.altezza / 2;
       aggiorna_barra_topo(topo);

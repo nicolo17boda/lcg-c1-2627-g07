@@ -10,46 +10,58 @@ const ZONE = [
   { inizio: 10000, fine: 15000, skin: null, sfondo: null },
   { inizio: 15000, fine: 20000, skin: null, sfondo: null },
 ];
-// Otto posizioni iniziali: ogni topo pattuglia il terreno disponibile intorno
-// al centro della coppia, rispettando vuoti, venditrice e checkpoint.
-const PATTUGLIE_TOPI = [
-  [460, 550], [1280, 1450], [1940, 2020], [2810, 2990],
-  [3120, 3200], [3900, 4010], [4430, 4580], [4670, 4830],
-];
 const SUOLO = 620;
 const DISTANZA_ISTRUZIONI = 200 + SPAZIO_INIZIALE;
-// Vuoti da 140–160 px: attraversabili con il salto singolo da 340 px/s.
+// Dal primo salto di riscaldamento ai vuoti da 320–360 px: il salto
+// singolo copre circa 265 px, il doppio circa 450 px (gravità 2000).
 const TERRENI = [
-  [0, 900], [1040, 610], [1800, 660],
-  [2620, 660], [3440, 660], [4260, 740],
-  // Le altre tre zone restano vuote, con il solo terreno provvisorio.
+  [0, 900], [1120, 560], [2000, 580],
+  [2920, 540], [3820, 480], [4640, 360],
   ...ZONE.slice(1).map(zona => [zona.inizio, zona.fine - zona.inizio]),
 ];
-// Tre deviazioni facoltative: rialzi da 140, 140 e 120 px.
-// Sotto il primo appoggio restano 116 px liberi per Meg, alta 108 px.
+// Rialzi da 220 px richiedono il doppio salto. Ogni terrazza offre
+// spazio per atterrare e attendere i 2 secondi di recupero.
 const PIATTAFORME = [
-  [600, 480, 160], [800, 340, 160], [1010, 220, 180],
-  [2070, 480, 160], [2270, 340, 160], [2480, 220, 180],
-  [3650, 480, 160], [3850, 340, 160], [4070, 220, 180],
+  [650, 400, 230], [1040, 180, 260],
+  [2220, 400, 260], [2600, 180, 260],
+  [4050, 400, 190], [4350, 180, 260],
 ];
-const CHECKPOINT = [1100, 1860, 2680, 3500, 4320];
+const CHECKPOINT = [1180, 2060, 2980, 3880, 4700];
+// Limiti espliciti evitano che più topi si ammassino sullo stesso bordo.
+// I grandi richiedono due colpi e non sono schiacciabili; le pattuglie
+// sulle terrazze obbligano a preparare l'atterraggio con la padella.
+const PATTUGLIE_TOPI = [
+  [530, 790, { grande: false, velocita: 0.65 }],
+  [1300, 1450, { grande: false, velocita: 0.75 }],
+  [1500, 1620, { grande: true, velocita: 0.6, direzione: -1 }],
+  [1100, 1240, { quota: 180, grande: false, velocita: 0.5 }],
+  [2170, 2320, { grande: true, velocita: 0.65 }],
+  [2390, 2520, { grande: false, velocita: 0.85, direzione: -1 }],
+  [2280, 2420, { quota: 400, grande: false, velocita: 0.55 }],
+  [2660, 2800, { quota: 180, grande: true, velocita: 0.45 }],
+  [3100, 3240, { grande: false, velocita: 0.9 }],
+  [3290, 3400, { grande: true, velocita: 0.65, direzione: -1 }],
+  [4010, 4100, { grande: true, velocita: 0.6 }],
+  [4170, 4240, { grande: false, velocita: 0.85, direzione: -1 }],
+  [4110, 4190, { quota: 400, grande: false, velocita: 0.55 }],
+  [4410, 4550, { quota: 180, grande: true, velocita: 0.45 }],
+  [4810, 4940, { grande: true, velocita: 0.7, direzione: -1 }],
+];
 const RELIQUIE = [
-  { x: 1100, y: 180 },
-  { x: 2570, y: 180 },
-  { x: 4160, y: 180 },
+  { x: 1270, y: 140 },
+  { x: 2830, y: 140 },
+  { x: 4580, y: 140 },
 ];
 const MONETE_ESPLORAZIONE = [
-  [680, 448], [880, 308], [1050, 188],
-  [2150, 448], [2350, 308], [2520, 188],
-  [3730, 448], [3930, 308], [4110, 188],
+  [700, 368], [830, 368], [1070, 148],
+  [2270, 368], [2450, 368], [2630, 148],
+  [4100, 368], [4210, 368], [4380, 148],
 ];
 // Niente soffitti bassi che comprimano il nuovo ingombro dei personaggi.
 const SOFFITTI = [];
 const BATTUTE = [
-  ["Venditrice", "La strada è lunga. Fai attenzione ai passaggi stretti."],
+  ["Venditrice", "I vuoti si allargano: usa il doppio salto!"],
   ["Meg", "Devo affrontare tutti quei topi?"],
-  ["Venditrice", "Puoi affrontarli oppure evitarli. Scegli tu la strada!"],
-  ["Meg", "Allora mi metto in cammino!"],
 ];
 
 registra_livello({

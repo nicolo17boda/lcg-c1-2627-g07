@@ -103,6 +103,7 @@ export function registra_livello(config) {
     topi_grandi ??= scegli_topi_grandi(PATTUGLIE_TOPI.length);
     nemici = crea_nemici(s, {
       meg, pattuglie: PATTUGLIE_TOPI, terreni: TERRENI, suolo: SUOLO,
+      piattaforme: PIATTAFORME,
       immagine: immagini.topo, blocchi: blocchi_solidi, bloccato,
       grandi: topi_grandi, zone_sicure: [config.partenza, ...CHECKPOINT,
         ...(config.venditrice ? [config.venditrice.x + 130] : [])],
@@ -182,9 +183,9 @@ export function registra_livello(config) {
   function crea_portale_mercato(s) {
     for (const zona of config.zone || [{ inizio: 0 }]) {
       const x = zona.inizio + 30;
-      PP.shapes.rectangle_add(s, x, SUOLO - 56, 34, 120, "0xB59AE8", 1);
-      const portale = rettangolo_fisico(s, x - 14, SUOLO - 110,
-        28, 110, "0x66518A");
+      PP.shapes.rectangle_add(s, x, SUOLO - 56, 44, 120, "0xB59AE8", 1);
+      const portale = rettangolo_fisico(s, x - 19, SUOLO - 110,
+        38, 110, "0x66518A");
       testo(s, x + 35, SUOLO - 140, "Mercato", 22);
       const mercato = { x, disponibile: false };
       mercati.push(mercato);
