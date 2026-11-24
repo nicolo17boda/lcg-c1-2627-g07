@@ -1,11 +1,11 @@
-import { registra_livello } from "../gameplay/livello.js?v=budino-lancio-2";
+import { registra_livello } from "../gameplay/livello.js?v=terreno-zona1-2";
 
 // Un unico livello continuo: ogni zona occupa 5.000 px.
 const SPAZIO_INIZIALE = 300;
 const LUNGHEZZA_ZONA = 5000;
 const LUNGHEZZA = LUNGHEZZA_ZONA * 4;
 const ZONE = [
-  { inizio: 0, fine: 5000, skin: "paese", sfondo: "provasfondo1" },
+  { inizio: 0, fine: 5000, skin: "zona1", sfondo: "provasfondo1" },
   { inizio: 5000, fine: 10000, skin: "roccia", sfondo: "provasfondo1" },
   { inizio: 10000, fine: 15000, skin: null, sfondo: null },
   { inizio: 15000, fine: 20000, skin: null, sfondo: null },
@@ -65,7 +65,7 @@ const BATTUTE = [
 registra_livello({
   nome: "livello", partenza: 110, arrivo: LUNGHEZZA - 70,
   zone: ZONE,
-  skin_terreni: "paese",
+  skin_terreni: "zona1",
   lunghezza: LUNGHEZZA, suolo: SUOLO, fine_istruzioni: 110 + DISTANZA_ISTRUZIONI,
   terreni: TERRENI, piattaforme: PIATTAFORME, soffitti: SOFFITTI,
   checkpoint: CHECKPOINT, reliquie: RELIQUIE,

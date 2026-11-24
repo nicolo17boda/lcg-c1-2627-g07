@@ -4,7 +4,7 @@ export function prepara_skin_terreni(s, immagini) {
   const skin = {};
   for (const [tipo, nome] of Object.entries({
     roccia: "terreni-01", piattaforma: "terreni-02", suolo: "terreni-03",
-    paese: "terra paese",
+    paese: "terra paese", zona1: "terreno_zona1-1",
   })) {
     const chiave = nome + "-ritaglio";
     if (!s.textures.exists(chiave)) {

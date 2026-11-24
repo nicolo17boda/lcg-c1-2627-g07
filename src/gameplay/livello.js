@@ -11,7 +11,7 @@ import { crea_nemici, scegli_topi_grandi } from "./nemici.js";
 import { crea_monete } from "./monete.js";
 import { crea_dialogo } from "./dialogo.js";
 import { crea_hud, crea_game_over } from "./hud.js?v=budino-5";
-import { prepara_skin_terreni, disegna_terreno } from "./terreni.js";
+import { prepara_skin_terreni, disegna_terreno } from "./terreni.js?v=terreno-zona1-2";
 import { crea_skin_personaggio } from "./personaggi.js";
 import { apri_pausa } from "../scenes/pausa.js";
 
@@ -47,7 +47,7 @@ export function registra_livello(config) {
 
   function preload(s) {
     for (const nome of ["cuore", "moneta", "topo", "padella-24", "provasfondo1",
-      "terreni-01", "terreni-02", "terreni-03", "terra paese", "meg-24", "index"]) {
+      "terreni-01", "terreni-02", "terreni-03", "terra paese", "terreno_zona1-1", "meg-24", "index"]) {
       immagini[nome] = PP.assets.image.load(s, "assets/images/" + nome + ".png");
     }
   }
