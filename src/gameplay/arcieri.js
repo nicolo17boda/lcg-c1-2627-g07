@@ -47,8 +47,6 @@ export function crea_arcieri(s, { meg, postazioni, suolo, blocchi, bloccato,
       vita: VITA_TOPO * 2, vita_max: VITA_TOPO * 2, immune: 0,
       recupero: INTERVALLO, direzione: -1,
       skin: s.add.image(x, quota, "arciere").setOrigin(0.5, 1).setFlipX(true),
-      fondo_barra: s.add.rectangle(x, quota - ALTEZZA - 12, 48, 8, 0x392c35),
-      barra: s.add.rectangle(x - 22, quota - ALTEZZA - 12, 44, 4, 0x85db9b).setOrigin(0, 0.5),
     };
     PP.physics.add_overlap_f(s, meg, corpo, () => on_contatto(nemico));
     return nemico;
@@ -118,13 +116,10 @@ export function crea_arcieri(s, { meg, postazioni, suolo, blocchi, bloccato,
   function danneggia(nemico, danno = DANNO_ATTACCO, ignora_immunita = false) {
     if (bloccato() || nemico.vita <= 0 || (nemico.immune && !ignora_immunita)) return;
     nemico.vita = Math.max(0, nemico.vita - danno);
-    nemico.barra.setScale(nemico.vita / nemico.vita_max, 1);
     if (nemico.vita === 0) {
       on_morte(nemico);
       PP.shapes.destroy(nemico.corpo);
       nemico.skin.destroy();
-      nemico.barra.destroy();
-      nemico.fondo_barra.destroy();
     } else nemico.immune = 250;
   }
 

@@ -1,7 +1,7 @@
 import {LARGHEZZA, ALTEZZA, font as FONT, font_titolo as FONT_TITOLO} from "./config.js";
 import "./menu.js";
-import "./scenes/livello1.js";
-import "./scenes/mercato.js";
+import "./scenes/livello.js?v=piattaforme-4";
+import "./scenes/mercato.js?v=padella-argentata-1";
 import { registra_pausa } from "./scenes/pausa.js";
 
 registra_pausa();

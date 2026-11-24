@@ -1,13 +1,15 @@
 import { LARGHEZZA, ALTEZZA } from "../config.js";
-import { aggiungi_moneta, monete_totali, rimuovi_monete } from "../progressi.js";
+import {
+  aggiungi_moneta, monete_totali, padella_argentata_acquistata, rimuovi_monete,
+} from "../progressi.js?v=padella-argentata-1";
 import { L_MEG, A_MEG, DIMENSIONE_MONETA, RIMBALZO_TOPO, VITE_MAX, COLORI } from "./config.js";
 import { rettangolo_fisico, fissa, testo } from "./grafica.js";
 import { crea_arcieri } from "./arcieri.js";
-import { crea_abilita_meg } from "./abilita_meg.js";
+import { crea_abilita_meg } from "./abilita_meg.js?v=padella-argentata-1";
 import { crea_nemici, scegli_topi_grandi } from "./nemici.js";
 import { crea_monete } from "./monete.js";
 import { crea_dialogo } from "./dialogo.js";
-import { crea_hud, crea_game_over } from "./hud.js";
+import { crea_hud, crea_game_over } from "./hud.js?v=coordinate-1";
 import { prepara_skin_terreni, disegna_terreno } from "./terreni.js";
 import { crea_skin_personaggio } from "./personaggi.js";
 import { apri_pausa } from "../scenes/pausa.js";
@@ -124,6 +126,7 @@ export function registra_livello(config) {
     abilita = crea_abilita_meg(s, {
       meg, topi: nemici.elenco, bloccato, danneggia: nemici.danneggia,
       immagine_padella: immagini["padella-24"],
+      padella_argentata: padella_argentata_acquistata,
       ostacoli: () => blocchi_solidi,
     });
     hud = crea_hud(s, { immagini, pausa });
@@ -352,10 +355,15 @@ export function registra_livello(config) {
   }
 
   function lascia_moneta(s, topo) {
-    const moneta = monete_visive.crea(topo.corpo.geometry.x,
-      topo.corpo.geometry.y - topo.altezza / 2 - DIMENSIONE_MONETA / 2, true);
-    for (const blocco of blocchi_solidi) PP.physics.add_collider(s, moneta, blocco);
-    PP.physics.add_overlap_f(s, meg, moneta, () => raccogli_moneta(moneta));
+    const quantita = topo.grande ? 3 : 1;
+    const x = topo.corpo.geometry.x;
+    const y = topo.corpo.geometry.y - topo.altezza / 2 - DIMENSIONE_MONETA / 2;
+    for (let i = 0; i < quantita; i++) {
+      const offset = (i - (quantita - 1) / 2) * DIMENSIONE_MONETA;
+      const moneta = monete_visive.crea(x + offset, y, true);
+      for (const blocco of blocchi_solidi) PP.physics.add_collider(s, moneta, blocco);
+      PP.physics.add_overlap_f(s, meg, moneta, () => raccogli_moneta(moneta));
+    }
   }
 
   function aggiorna_hud() {
@@ -364,7 +372,7 @@ export function registra_livello(config) {
   }
 
   function aggiorna_skin_meg() {
-    hud?.aggiorna_coordinate(meg.geometry.x, meg.geometry.y);
+    hud?.aggiorna_coordinate?.(meg.geometry.x, meg.geometry.y);
     for (const { zona, sfondo } of sfondi_zone) {
       sfondo.visibility.hidden = meg.geometry.x < zona.inizio || meg.geometry.x >= zona.fine;
     }

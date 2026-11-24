@@ -61,8 +61,6 @@ export function crea_nemici(s, { meg, pattuglie: PATTUGLIE_TOPI, terreni: TERREN
       const topo = {
         id, corpo, skin, minimo, massimo, grande, larghezza, altezza, vita_max,
         velocita, direzione: opzioni?.direzione ?? 1, vita: vita_max, immune: false,
-        fondo_barra: PP.shapes.rectangle_add(s, 0, 0, larghezza, 8, "0x392C35", 1),
-        barra: PP.shapes.rectangle_add(s, 0, 0, larghezza - 4, 4, "0x85DB9B", 1),
       };
       // Barriere dedicate ai topi: Meg e le monete possono attraversarle.
       for (const [x, direzione] of [
@@ -79,24 +77,10 @@ export function crea_nemici(s, { meg, pattuglie: PATTUGLIE_TOPI, terreni: TERREN
       }
       topi.push(topo);
       per_id.set(id, topo);
-      aggiorna_barra_topo(topo);
       skin.geometry.flip_x = topo.direzione > 0;
       PP.physics.set_velocity_x(corpo, topo.direzione * topo.velocita);
       PP.physics.add_overlap_f(s, meg, corpo, () => on_contatto(topo));
     }
-  }
-
-  function aggiorna_barra_topo(topo) {
-    const frazione = topo.vita / topo.vita_max;
-    const x = topo.corpo.geometry.x;
-    const y = topo.corpo.geometry.y - topo.altezza / 2 - 12;
-    topo.fondo_barra.geometry.x = x;
-    topo.fondo_barra.geometry.y = y;
-    topo.barra.geometry.scale_x = frazione;
-    // La salute si svuota da destra mantenendo fisso il margine sinistro.
-    const mezza_barra = (topo.larghezza - 4) / 2;
-    topo.barra.geometry.x = x - mezza_barra + mezza_barra * frazione;
-    topo.barra.geometry.y = y;
   }
 
   function aggiorna_topi() {
@@ -116,7 +100,6 @@ export function crea_nemici(s, { meg, pattuglie: PATTUGLIE_TOPI, terreni: TERREN
         bloccato() ? 0 : topo.direzione * topo.velocita);
       topo.skin.geometry.x = topo.corpo.geometry.x;
       topo.skin.geometry.y = topo.corpo.geometry.y - topo.altezza / 2;
-      aggiorna_barra_topo(topo);
     }
   }
 
@@ -127,11 +110,8 @@ export function crea_nemici(s, { meg, pattuglie: PATTUGLIE_TOPI, terreni: TERREN
       on_morte(topo);
       PP.shapes.destroy(topo.corpo);
       PP.shapes.destroy(topo.skin);
-      PP.shapes.destroy(topo.barra);
-      PP.shapes.destroy(topo.fondo_barra);
       return;
     }
-    aggiorna_barra_topo(topo);
     if (topo.immune) return;
     topo.immune = true;
     topo.skin.visibility.alpha = 0.5;

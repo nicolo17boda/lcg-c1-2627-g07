@@ -1,9 +1,14 @@
 import { LARGHEZZA, ALTEZZA } from "../config.js";
 import { A_MEG, VELOCITA, SALTO, COOLDOWN_DOPPIO_SALTO,
   COOLDOWN_LANCIO, COOLDOWN_MELEE, DURATA_MELEE, VELOCITA_PADELLA,
-  DURATA_RIENTRO_PADELLA, DANNO_ATTACCO, COLORI } from "./config.js";
+  DURATA_RIENTRO_PADELLA, DANNO_ATTACCO,
+  BONUS_DANNO_PADELLA_ARGENTATA, BONUS_VELOCITA_RIENTRO_PADELLA_ARGENTATA,
+  TINTA_PADELLA_ARGENTATA, COLORI } from "./config.js?v=padella-argentata-1";
 
-export function crea_abilita_meg(s, { meg, topi, ostacoli, bloccato, danneggia, immagine_padella }) {
+export function crea_abilita_meg(s, {
+  meg, topi, ostacoli, bloccato, danneggia, immagine_padella,
+  padella_argentata = () => false,
+}) {
   // Mantiene i colpi a 22 px dal suolo anche con la nuova altezza di Meg.
   const quota_padella = A_MEG / 2 - 22;
   let direzione_meg = 1;
@@ -13,8 +18,11 @@ export function crea_abilita_meg(s, { meg, topi, ostacoli, bloccato, danneggia, 
   let doppio_salto_usato = false;
   let colpo_melee = null;
   let padella_lanciata = null;
+  let pelle_argentata_applicata = padella_argentata();
   function crea_skin_padella(x, y, lunghezza, direzione) {
     const skin = PP.assets.image.add(s, immagine_padella, x, y, 0.5, 0.5);
+    // Tinta provvisoria finché non è disponibile la grafica argentata.
+    if (pelle_argentata_applicata) skin.ph_obj.setTint(TINTA_PADELLA_ARGENTATA);
     // Il disegno misura circa 990 px in verticale: ruotato, il manico
     // punta verso Meg e la testa della padella verso il bersaglio.
     skin.geometry.scale_x = lunghezza / 990;
@@ -23,11 +31,27 @@ export function crea_abilita_meg(s, { meg, topi, ostacoli, bloccato, danneggia, 
     return skin;
   }
 
+  function aggiorna_skin_argentata() {
+    const acquistata = padella_argentata();
+    if (acquistata === pelle_argentata_applicata) return;
+    pelle_argentata_applicata = acquistata;
+    for (const skin of [padella_in_mano, padella_lanciata?.skin]) {
+      if (!skin) continue;
+      if (acquistata) skin.ph_obj.setTint(TINTA_PADELLA_ARGENTATA);
+      else skin.ph_obj.clearTint();
+    }
+  }
+
+  function danno_padella() {
+    return DANNO_ATTACCO * (1 + (padella_argentata() ? BONUS_DANNO_PADELLA_ARGENTATA : 0));
+  }
+
   const padella_in_mano = crea_skin_padella(meg.geometry.x + 34, meg.geometry.y + quota_padella, 40, 1);
   let distrutta = false;
 
   function aggiorna_skin() {
     if (distrutta) return;
+    aggiorna_skin_argentata();
     padella_in_mano.visibility.hidden = Boolean(padella_lanciata);
     const direzione = colpo_melee ? colpo_melee.direzione : direzione_meg;
     const lunghezza = colpo_melee ? 64 : 40;
@@ -118,8 +142,11 @@ export function crea_abilita_meg(s, { meg, topi, ostacoli, bloccato, danneggia, 
       lancio.skin.visibility.hidden = false;
     }
     if (lancio.fase === "ritorno") {
-      const frazione = Math.min(1, delta / (recupero_lancio + delta));
       const mano_x = meg.geometry.x + direzione_meg * 34;
+      const fattore_velocita = 1
+        + (padella_argentata() ? BONUS_VELOCITA_RIENTRO_PADELLA_ARGENTATA : 0);
+      const frazione = Math.min(1,
+        delta * fattore_velocita / (recupero_lancio + delta));
       lancio.skin.geometry.x += (mano_x - lancio.skin.geometry.x) * frazione;
       lancio.skin.geometry.y += (meg.geometry.y + quota_padella - lancio.skin.geometry.y) * frazione;
       for (const topo of topi) {
@@ -127,7 +154,7 @@ export function crea_abilita_meg(s, { meg, topi, ostacoli, bloccato, danneggia, 
         if (Math.abs(topo.corpo.geometry.x - lancio.skin.geometry.x) >= 15 + topo.larghezza / 2
             || Math.abs(topo.corpo.geometry.y - lancio.skin.geometry.y) >= 12 + topo.altezza / 2) continue;
         lancio.colpiti_ritorno.add(topo.id);
-        danneggia(topo, DANNO_ATTACCO / 2, true);
+        danneggia(topo, danno_padella() / 2, true);
       }
     }
     lancio.skin.geometry.angle += lancio.direzione * delta * 0.8;
@@ -164,7 +191,7 @@ export function crea_abilita_meg(s, { meg, topi, ostacoli, bloccato, danneggia, 
         if (!visibile(lancio.corpo)) { attendi_rientro(lancio); return; }
         if (!visibile(topo.corpo)) return;
         lancio.colpiti_andata.add(topo.id);
-        danneggia(topo);
+        danneggia(topo, danno_padella());
       }));
     }
   }
@@ -176,14 +203,14 @@ export function crea_abilita_meg(s, { meg, topi, ostacoli, bloccato, danneggia, 
     for (const topo of topi) {
       if (topo.vita <= 0 || !colpisce_melee(topo)) continue;
       colpo_melee.colpiti.add(topo.id);
-      danneggia(topo);
+      danneggia(topo, danno_padella());
     }
   }
 
   function colpisci_melee(topo) {
     if (bloccato() || !colpisce_melee(topo)) return false;
     colpo_melee.colpiti.add(topo.id);
-    danneggia(topo);
+    danneggia(topo, danno_padella());
     return true;
   }
 

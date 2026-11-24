@@ -32,7 +32,7 @@ function create(s) {
   crea_sfondo(s);
   testo(s, LARGHEZZA / 2, 190, "La Mamma dell'Ammazzadraghi", 56, FONT_TITOLO);
   crea_bottone(s, 370, "Storia", () => PP.scenes.start("storia"));
-  crea_bottone(s, 475, "Gioca", () => PP.scenes.start("livello1"));
+  crea_bottone(s, 475, "Gioca", () => PP.scenes.start("livello"));
   crea_bottone(s, 580, "Crediti", () => PP.scenes.start("crediti"));
 }
 
