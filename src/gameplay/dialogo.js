@@ -17,6 +17,7 @@ export function crea_dialogo(s, { battute: BATTUTE, on_apri, on_chiudi }) {
     pannello_dialogo = [pannello, nome_dialogo, testo_dialogo, invito_dialogo];
     for (const elemento of pannello_dialogo) {
       fissa(elemento);
+      elemento.ph_obj.setDepth(200);
       elemento.visibility.hidden = true;
     }
   }

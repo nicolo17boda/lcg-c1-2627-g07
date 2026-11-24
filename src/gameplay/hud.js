@@ -2,6 +2,12 @@ import { LARGHEZZA, ALTEZZA } from "../config.js";
 import { COLORI, VITE_MAX } from "./config.js";
 import { testo, fissa, adatta_testo } from "./grafica.js";
 
+// Una profondità esplicita mantiene l’HUD sopra gli oggetti creati anche in seguito.
+function fissa_hud(elemento, profondita = 100) {
+  fissa(elemento);
+  elemento.ph_obj.setDepth(profondita);
+}
+
 function crea_indicatore_ricarica(s, x, y, icona) {
   const fondo = PP.shapes.arc_add(s, x, y, 19, 0, 360, false, COLORI.terreno, 0.45);
   const angolo_iniziale = -Math.PI / 2;
@@ -37,7 +43,7 @@ function crea_indicatore_ricarica(s, x, y, icona) {
   }
   const elementi = [fondo, ...punti_sfondo, ...punti, ...simbolo,
     ...(immagine ? [immagine] : [])];
-  for (const elemento of elementi) fissa(elemento);
+  for (const elemento of elementi) fissa_hud(elemento);
   let precedente;
 
   return {
@@ -60,6 +66,7 @@ export function crea_hud(s, { immagini, pausa }) {
   let pannello_istruzioni, istruzioni, testo_monete, monete_visibili;
   let vite_precedenti, istruzioni_visibili;
   let ricarica_salto, ricarica_padella;
+  let testo_coordinate, coordinate_precedenti;
   function crea_elementi(s) {
     elementi_hud = [];
     // Due righe distinte: risorse sopra, abilità in due colonne sotto.
@@ -83,8 +90,8 @@ export function crea_hud(s, { immagini, pausa }) {
       1000, 94, COLORI.sfondo, 0.96);
     istruzioni = testo(s, 524, 63,
       "← → / A D  Muovi     Spazio / ↑ / W  Doppio salto\nC  Melee padella    V  Lancio padella    R  Ricomincia    Esc  Pausa", 17);
-    fissa(pannello_istruzioni);
-    fissa(istruzioni);
+    fissa_hud(pannello_istruzioni);
+    fissa_hud(istruzioni);
     cuori = [];
     for (let i = 0; i < VITE_MAX; i++) {
       const cuore = PP.assets.image.add(s, immagine_cuore,
@@ -101,13 +108,18 @@ export function crea_hud(s, { immagini, pausa }) {
     icona_moneta.geometry.scale_y = 0.1;
     testo_monete = testo(s, 270, 42, "", 24);
     elementi_hud.push(icona_moneta, testo_monete);
-    for (const elemento of elementi_hud) fissa(elemento);
+    for (const elemento of elementi_hud) fissa_hud(elemento);
     const bottone = PP.shapes.rectangle_add(s, LARGHEZZA - 105, 45,
       170, 52, COLORI.terreno, 1);
-    fissa(bottone);
+    fissa_hud(bottone);
     const etichetta_menu = adatta_testo(
       testo(s, LARGHEZZA - 105, 45, "Pausa [Esc]", 18), 146, 24);
-    fissa(etichetta_menu);
+    fissa_hud(etichetta_menu);
+    const pannello_coordinate = PP.shapes.rectangle_add(s, LARGHEZZA - 130, 100,
+      220, 34, COLORI.sfondo, 0.96);
+    testo_coordinate = testo(s, LARGHEZZA - 130, 100, "", 16);
+    fissa_hud(pannello_coordinate);
+    fissa_hud(testo_coordinate);
     PP.interactive.mouse.add(bottone, "pointerdown", pausa);
     PP.interactive.mouse.add(bottone, "pointerover", () => {
       bottone.visibility.alpha = 0.7;
@@ -130,6 +142,12 @@ export function crea_hud(s, { immagini, pausa }) {
   crea_elementi(s);
   return {
     mostra_istruzioni,
+    aggiorna_coordinate(x, y) {
+      const coordinate = `X: ${Math.round(x)}   Y: ${Math.round(y)}`;
+      if (coordinate === coordinate_precedenti) return;
+      coordinate_precedenti = coordinate;
+      PP.shapes.text_change(testo_coordinate, coordinate);
+    },
     aggiorna({ vite, monete, salto, lancio }) {
       if (monete !== monete_visibili) {
         monete_visibili = monete;
@@ -153,7 +171,7 @@ export function crea_game_over(s, ricomincia) {
     240, 64, COLORI.terreno, 1);
   const etichetta = adatta_testo(
     testo(s, LARGHEZZA / 2, ALTEZZA / 2 + 55, "Ricomincia", 28), 200, 32);
-  for (const elemento of [pannello, titolo, bottone, etichetta]) fissa(elemento);
+  for (const elemento of [pannello, titolo, bottone, etichetta]) fissa_hud(elemento, 200);
   PP.interactive.mouse.add(bottone, "pointerdown", ricomincia);
   PP.interactive.mouse.add(bottone, "pointerover", () => {
     bottone.visibility.alpha = 0.7;

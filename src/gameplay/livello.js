@@ -2,6 +2,7 @@ import { LARGHEZZA, ALTEZZA } from "../config.js";
 import { aggiungi_moneta, monete_totali, rimuovi_monete } from "../progressi.js";
 import { L_MEG, A_MEG, DIMENSIONE_MONETA, RIMBALZO_TOPO, VITE_MAX, COLORI } from "./config.js";
 import { rettangolo_fisico, fissa, testo } from "./grafica.js";
+import { crea_arcieri } from "./arcieri.js";
 import { crea_abilita_meg } from "./abilita_meg.js";
 import { crea_nemici, scegli_topi_grandi } from "./nemici.js";
 import { crea_monete } from "./monete.js";
@@ -20,7 +21,7 @@ export function registra_livello(config) {
     monete: MONETE_ESPLORAZIONE = [], pattuglie: PATTUGLIE_TOPI = [],
   } = config;
   let meg, nemici, abilita, hud, dialogo, monete_visive;
-  let skin_meg;
+  let skin_meg, arcieri;
   let sfondi_zone = [];
   let partenza = config.partenza;
   let vite = VITE_MAX;
@@ -58,10 +59,6 @@ export function registra_livello(config) {
     piedi_meg_precedenti = SUOLO;
     crea_sfondo(s);
     skin_terreni = prepara_skin_terreni(s, immagini);
-    if (config.skin_terreni) {
-      const skin = skin_terreni[config.skin_terreni];
-      skin_terreni = { suolo: skin, piattaforma: skin, roccia: skin };
-    }
     meg = PP.shapes.rectangle_add(s, partenza, SUOLO - A_MEG / 2,
       L_MEG, A_MEG, COLORI.meg, 1);
     PP.physics.add(s, meg, PP.physics.type.DYNAMIC);
@@ -110,6 +107,18 @@ export function registra_livello(config) {
       on_contatto: topo => tocca_topo(s, topo),
       on_morte: topo => lascia_moneta(s, topo),
     });
+    arcieri = crea_arcieri(s, {
+      meg, postazioni: config.arcieri || [], suolo: SUOLO, blocchi: blocchi_solidi,
+      bloccato, on_contatto: nemico => tocca_topo(s, nemico),
+      on_morte: nemico => lascia_moneta(s, nemico), on_freccia: () => riprova(s),
+    });
+    const topi = nemici;
+    nemici = {
+      elenco: [...topi.elenco, ...arcieri.elenco],
+      aggiorna: topi.aggiorna,
+      danneggia: (nemico, ...argomenti) => nemico.tipo === "arciere"
+        ? arcieri.danneggia(nemico, ...argomenti) : topi.danneggia(nemico, ...argomenti),
+    };
     PP.camera.set_bounds(s, 0, 0, LUNGHEZZA, ALTEZZA);
     PP.camera.start_follow(s, meg, -180, 0);
     abilita = crea_abilita_meg(s, {
@@ -183,9 +192,9 @@ export function registra_livello(config) {
   function crea_portale_mercato(s) {
     for (const zona of config.zone || [{ inizio: 0 }]) {
       const x = zona.inizio + 30;
-      PP.shapes.rectangle_add(s, x, SUOLO - 56, 44, 120, "0xB59AE8", 1);
-      const portale = rettangolo_fisico(s, x - 19, SUOLO - 110,
-        38, 110, "0x66518A");
+      PP.shapes.rectangle_add(s, x, SUOLO - 56, 54, 120, "0xB59AE8", 1);
+      const portale = rettangolo_fisico(s, x - 24, SUOLO - 110,
+        48, 110, "0x66518A");
       testo(s, x + 35, SUOLO - 140, "Mercato", 22);
       const mercato = { x, disponibile: false };
       mercati.push(mercato);
@@ -233,7 +242,10 @@ export function registra_livello(config) {
 
   function crea_blocco(s, x, y, larghezza, altezza, skin) {
     const zona = config.zone?.find(zona => x >= zona.inizio && x < zona.fine);
-    if (zona && zona.skin === null) skin = null;
+    if (zona?.skin === null) skin = null;
+    else if (zona?.skin || config.skin_terreni) {
+      skin = skin_terreni[zona?.skin || config.skin_terreni];
+    }
     const blocco = rettangolo_fisico(s, x, y, larghezza, altezza, COLORI.terreno);
     if (skin) {
       blocco.visibility.alpha = 0;
@@ -352,6 +364,7 @@ export function registra_livello(config) {
   }
 
   function aggiorna_skin_meg() {
+    hud?.aggiorna_coordinate(meg.geometry.x, meg.geometry.y);
     for (const { zona, sfondo } of sfondi_zone) {
       sfondo.visibility.hidden = meg.geometry.x < zona.inizio || meg.geometry.x >= zona.fine;
     }
@@ -374,6 +387,7 @@ export function registra_livello(config) {
     }
     monete_visive?.aggiorna();
     abilita?.aggiorna_skin();
+    arcieri?.aggiorna(1000 / PP.game.get_physics_fps(s));
     if (transizione || game_over) return;
     nemici.aggiorna();
     piedi_meg_precedenti = meg.geometry.y + A_MEG / 2;
@@ -399,6 +413,7 @@ export function registra_livello(config) {
 
   function destroy(s) {
     s.events.off("postupdate", aggiorna_skin_meg);
+    arcieri?.distruggi();
     abilita?.distruggi();
   }
 
