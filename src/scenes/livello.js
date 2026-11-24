@@ -1,4 +1,4 @@
-import { registra_livello } from "../gameplay/livello.js?v=budino-1";
+import { registra_livello } from "../gameplay/livello.js?v=arcieri-1";
 
 // Un unico livello continuo: ogni zona occupa 5.000 px.
 const SPAZIO_INIZIALE = 300;
@@ -43,7 +43,7 @@ const PIATTAFORME = [
   [17810, 490, 220],
 ];
 const ARCIERI = [
-  [5620], [6858, 250], [8031, 300], [9480, 324], [9888, 400],
+  [5620], [8031, 300], [9480, 324],
 ];
 const CHECKPOINT = [2060, 4969, 7060, 9960, 12060, 14960, 17060,];
 const PATTUGLIE_TOPI = [

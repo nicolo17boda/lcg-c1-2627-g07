@@ -6,6 +6,7 @@ const INTERVALLO = 2400;
 const PREAVVISO = 450;
 const PORTATA = 650;
 const VELOCITA_FRECCIA = 360;
+const VITA_ARCIERE = VITA_TOPO * 4;
 
 // Sagoma pixel art provvisoria: cappuccio, tunica, faretra e arco.
 function prepara_texture(s) {
@@ -44,7 +45,7 @@ export function crea_arcieri(s, { meg, postazioni, suolo, blocchi, bloccato,
     const nemico = {
       id: "arciere-" + indice, tipo: "arciere", corpo,
       larghezza: LARGHEZZA, altezza: ALTEZZA, grande: true,
-      vita: VITA_TOPO * 2, vita_max: VITA_TOPO * 2, immune: 0,
+      vita: VITA_ARCIERE, vita_max: VITA_ARCIERE, immune: 0,
       recupero: INTERVALLO, direzione: -1,
       skin: s.add.image(x, quota, "arciere").setOrigin(0.5, 1).setFlipX(true),
     };

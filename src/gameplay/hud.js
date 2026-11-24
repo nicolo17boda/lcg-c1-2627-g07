@@ -59,7 +59,7 @@ function crea_indicatore_ricarica(s, x, y, icona) {
   };
 }
 
-export function crea_hud(s, { immagini, pausa }) {
+export function crea_hud(s, { immagini }) {
   const { cuore: immagine_cuore, moneta: immagine_moneta,
     "padella-24": immagine_padella } = immagini;
   let elementi_hud = [], cuori = [];
@@ -113,19 +113,6 @@ export function crea_hud(s, { immagini, pausa }) {
     testo_coordinate = testo(s, 172, 182, "", 13);
     elementi_hud.push(divisore_coordinate, testo_coordinate);
     for (const elemento of elementi_hud) fissa_hud(elemento);
-    const bottone = PP.shapes.rectangle_add(s, LARGHEZZA - 105, 45,
-      170, 52, COLORI.terreno, 1);
-    fissa_hud(bottone);
-    const etichetta_menu = adatta_testo(
-      testo(s, LARGHEZZA - 105, 45, "Pausa [Esc]", 18), 146, 24);
-    fissa_hud(etichetta_menu);
-    PP.interactive.mouse.add(bottone, "pointerdown", pausa);
-    PP.interactive.mouse.add(bottone, "pointerover", () => {
-      bottone.visibility.alpha = 0.7;
-    });
-    PP.interactive.mouse.add(bottone, "pointerout", () => {
-      bottone.visibility.alpha = 1;
-    });
   }
 
   function mostra_istruzioni(visibili) {

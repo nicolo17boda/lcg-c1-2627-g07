@@ -1,16 +1,16 @@
-import { crea_stato_budino, crea_missione_budino } from "./budino.js";
+import { crea_stato_budino, crea_missione_budino } from "./budino.js?v=budino-5";
 import { LARGHEZZA, ALTEZZA } from "../config.js";
 import {
   aggiungi_moneta, monete_totali, padella_argentata_acquistata, rimuovi_monete,
 } from "../progressi.js?v=padella-argentata-1";
 import { L_MEG, A_MEG, DIMENSIONE_MONETA, RIMBALZO_TOPO, VITE_MAX, COLORI } from "./config.js";
 import { rettangolo_fisico, fissa, testo } from "./grafica.js";
-import { crea_arcieri } from "./arcieri.js";
+import { crea_arcieri } from "./arcieri.js?v=arcieri-1";
 import { crea_abilita_meg } from "./abilita_meg.js?v=padella-argentata-1";
 import { crea_nemici, scegli_topi_grandi } from "./nemici.js";
 import { crea_monete } from "./monete.js";
 import { crea_dialogo } from "./dialogo.js";
-import { crea_hud, crea_game_over } from "./hud.js?v=coordinate-integrate-4";
+import { crea_hud, crea_game_over } from "./hud.js?v=budino-5";
 import { prepara_skin_terreni, disegna_terreno } from "./terreni.js";
 import { crea_skin_personaggio } from "./personaggi.js";
 import { apri_pausa } from "../scenes/pausa.js";
@@ -131,7 +131,7 @@ export function registra_livello(config) {
       padella_argentata: padella_argentata_acquistata,
       ostacoli: () => blocchi_solidi,
     });
-    hud = crea_hud(s, { immagini, pausa });
+    hud = crea_hud(s, { immagini });
     hud.mostra_istruzioni(istruzioni_visibili);
     aggiorna_hud();
     if (config.mercato) crea_portale_mercato(s);
@@ -153,7 +153,10 @@ export function registra_livello(config) {
     }
     crea_esplorazione(s);
     stato_budino ??= crea_stato_budino(config);
-    missione_budino = crea_missione_budino(s, { stato: stato_budino, config, meg, bloccato });
+    missione_budino = crea_missione_budino(s, {
+      stato: stato_budino, config, meg, blocchi: blocchi_solidi, bloccato,
+      on_colpito: () => riprova(s),
+    });
   }
 
   function crea_esplorazione(s) {
@@ -401,7 +404,7 @@ export function registra_livello(config) {
     monete_visive?.aggiorna();
     abilita?.aggiorna_skin();
     arcieri?.aggiorna(1000 / PP.game.get_physics_fps(s));
-    missione_budino?.aggiorna();
+    missione_budino?.aggiorna(1000 / PP.game.get_physics_fps(s));
     if (transizione || game_over) return;
     nemici.aggiorna();
     piedi_meg_precedenti = meg.geometry.y + A_MEG / 2;
@@ -428,6 +431,7 @@ export function registra_livello(config) {
   function destroy(s) {
     s.events.off("postupdate", aggiorna_skin_meg);
     arcieri?.distruggi();
+    missione_budino?.distruggi();
     abilita?.distruggi();
   }
 
