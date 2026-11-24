@@ -18,6 +18,7 @@ export function crea_abilita_meg(s, {
   let doppio_salto_usato = false;
   let colpo_melee = null;
   let padella_lanciata = null;
+  let padella_nascosta_per_budino = false;
   let pelle_argentata_applicata = padella_argentata();
   function crea_skin_padella(x, y, lunghezza, direzione) {
     const skin = PP.assets.image.add(s, immagine_padella, x, y, 0.5, 0.5);
@@ -49,7 +50,7 @@ export function crea_abilita_meg(s, {
   function aggiorna_skin() {
     if (distrutta) return;
     aggiorna_skin_argentata();
-    padella_in_mano.visibility.hidden = Boolean(padella_lanciata);
+    padella_in_mano.visibility.hidden = Boolean(padella_lanciata) || padella_nascosta_per_budino;
     const direzione = colpo_melee ? colpo_melee.direzione : direzione_meg;
     const lunghezza = colpo_melee ? 64 : 40;
     padella_in_mano.geometry.x = meg.geometry.x + direzione * (colpo_melee ? 48 : 34);
@@ -226,6 +227,10 @@ export function crea_abilita_meg(s, {
   return {
     termina: termina_attacchi,
     aggiorna_skin,
+    nascondi_padella() {
+      padella_nascosta_per_budino = true;
+      aggiorna_skin();
+    },
     sospendi() {
       colpo_melee = null;
       if (padella_lanciata?.corpo) PP.physics.set_velocity_x(padella_lanciata.corpo, 0);

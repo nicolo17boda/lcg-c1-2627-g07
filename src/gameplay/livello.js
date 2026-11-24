@@ -1,4 +1,4 @@
-import { crea_stato_budino, crea_missione_budino } from "./budino.js?v=budino-5";
+import { crea_stato_budino, crea_missione_budino } from "./budino.js?v=budino-lancio-2";
 import { LARGHEZZA, ALTEZZA } from "../config.js";
 import {
   aggiungi_moneta, monete_totali, padella_argentata_acquistata, rimuovi_monete,
@@ -6,7 +6,7 @@ import {
 import { L_MEG, A_MEG, DIMENSIONE_MONETA, RIMBALZO_TOPO, VITE_MAX, COLORI } from "./config.js";
 import { rettangolo_fisico, fissa, testo } from "./grafica.js";
 import { crea_arcieri } from "./arcieri.js?v=arcieri-1";
-import { crea_abilita_meg } from "./abilita_meg.js?v=padella-argentata-1";
+import { crea_abilita_meg } from "./abilita_meg.js?v=budino-lancio-2";
 import { crea_nemici, scegli_topi_grandi } from "./nemici.js";
 import { crea_monete } from "./monete.js";
 import { crea_dialogo } from "./dialogo.js";
@@ -156,6 +156,7 @@ export function registra_livello(config) {
     missione_budino = crea_missione_budino(s, {
       stato: stato_budino, config, meg, blocchi: blocchi_solidi, bloccato,
       on_colpito: () => riprova(s),
+      on_lancia_budino: () => abilita.nascondi_padella(),
     });
   }
 

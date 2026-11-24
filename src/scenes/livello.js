@@ -1,4 +1,4 @@
-import { registra_livello } from "../gameplay/livello.js?v=arcieri-1";
+import { registra_livello } from "../gameplay/livello.js?v=budino-lancio-2";
 
 // Un unico livello continuo: ogni zona occupa 5.000 px.
 const SPAZIO_INIZIALE = 300;
@@ -42,9 +42,8 @@ const PIATTAFORME = [
   [16473, 300, 220], [16844, 490, 200], [17323, 370, 100],
   [17810, 490, 220],
 ];
-const ARCIERI = [
-  [5620], [8031, 300], [9480, 324],
-];
+const ARCIERI = [];
+const DRAGO_ATTIVO = true;
 const CHECKPOINT = [2060, 4969, 7060, 9960, 12060, 14960, 17060,];
 const PATTUGLIE_TOPI = [
   [530, 790, { grande: false, velocita: 0.65 }],
@@ -71,6 +70,7 @@ registra_livello({
   terreni: TERRENI, piattaforme: PIATTAFORME, soffitti: SOFFITTI,
   checkpoint: CHECKPOINT, reliquie: RELIQUIE,
   arcieri: ARCIERI,
+  drago_attivo: DRAGO_ATTIVO,
   monete: MONETE_ESPLORAZIONE, pattuglie: PATTUGLIE_TOPI,
   venditrice: { x: 220, battute: BATTUTE }, mercato: true,
 });

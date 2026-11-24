@@ -1,10 +1,14 @@
 import { testo } from "./grafica.js";
 
 const INTERVALLO_FUOCO = 2200;
-const PORTATA_FUOCO = 850;
-const VELOCITA_FUOCO = 420;
+const PORTATA_FUOCO = 1600;
+const VELOCITA_FUOCO = 500;
+const VELOCITA_BUDINO = 620;
+const RAGGIO_INTERAZIONE = 220;
 
-export function crea_drago(s, { config, meg, stato, blocchi, bloccato, on_colpito }) {
+export function crea_drago(s, {
+  config, meg, stato, blocchi, bloccato, on_colpito, on_lancia_budino,
+}) {
   const drago_x = config.zone[3].fine - 550;
   const suolo = config.suolo;
   const drago = s.add.graphics({ x: drago_x, y: suolo });
@@ -17,10 +21,12 @@ export function crea_drago(s, { config, meg, stato, blocchi, bloccato, on_colpit
   drago.fillStyle(0xf1c85e).fillRect(-92, -162, 13, 9);
   drago.fillStyle(0x1d2938).fillRect(-90, -162, 4, 9);
   drago.fillStyle(0x3e6048).fillRect(-60, -28, 45, 28).fillRect(30, -28, 45, 28);
-  const etichetta = testo(s, drago_x, suolo - 250, "Drago · E Fai mangiare il budino", 21);
+  const etichetta = testo(s, drago_x, suolo - 250, "Drago · E lancia il budino", 21);
   const palle_fuoco = new Set();
   let recupero_fuoco = INTERVALLO_FUOCO;
   let mostrato_sconfitto = false;
+  let era_in_portata = false;
+  let budino_lanciato = null;
 
   function rimuovi_palla(palla) {
     if (!palle_fuoco.delete(palla)) return;
@@ -58,6 +64,23 @@ export function crea_drago(s, { config, meg, stato, blocchi, bloccato, on_colpit
     PP.physics.set_velocity_x(corpo, direzione * VELOCITA_FUOCO);
   }
 
+  function rimuovi_budino_lanciato() {
+    const lancio = budino_lanciato;
+    if (!lancio) return;
+    lancio.skin.destroy();
+    budino_lanciato = null;
+  }
+
+  function lancia_budino() {
+    const direzione = meg.geometry.x < drago_x ? 1 : -1;
+    const x = meg.geometry.x;
+    const y = meg.geometry.y - 24;
+    const skin = s.add.image(x, y, "ricetta-budino-cotto").setDepth(50);
+    const lancio = { x, y, skin, direzione, restante: 2000 };
+    budino_lanciato = lancio;
+    on_lancia_budino();
+  }
+
   function aggiorna_palle(delta, fermo) {
     for (const palla of palle_fuoco) {
       PP.physics.set_velocity_x(palla.corpo,
@@ -69,9 +92,10 @@ export function crea_drago(s, { config, meg, stato, blocchi, bloccato, on_colpit
   }
 
   function aggiorna(delta, premuto = false) {
-    const vicino = Math.abs(meg.geometry.x - (drago_x - 80)) < 135
+    const vicino = Math.abs(meg.geometry.x - drago_x) < RAGGIO_INTERAZIONE
       && Math.abs(meg.geometry.y - (suolo - 54)) < 110;
-    if (!bloccato() && vicino && premuto) stato.offri();
+    if (!bloccato() && vicino && premuto && stato.cotto
+        && !stato.drago_sconfitto && !budino_lanciato) lancia_budino();
     if (stato.drago_sconfitto && !mostrato_sconfitto) {
       PP.shapes.text_change(etichetta, "Drago sconfitto · sazio di budino");
       mostrato_sconfitto = true;
@@ -80,12 +104,29 @@ export function crea_drago(s, { config, meg, stato, blocchi, bloccato, on_colpit
 
     const fermo = bloccato() || stato.drago_sconfitto;
     aggiorna_palle(delta, fermo);
+    if (budino_lanciato) {
+      if (!fermo) {
+        const lancio = budino_lanciato;
+        const distanza_prima = lancio.x - drago_x;
+        lancio.x += lancio.direzione * VELOCITA_BUDINO * delta / 1000;
+        const distanza_dopo = lancio.x - drago_x;
+        lancio.skin.setPosition(lancio.x, lancio.y);
+        lancio.skin.rotation += lancio.direzione * delta * 0.001;
+        const colpito = distanza_prima === 0 || distanza_prima * distanza_dopo <= 0;
+        if (colpito && stato.offri()) rimuovi_budino_lanciato();
+        else if ((lancio.restante -= delta) <= 0) rimuovi_budino_lanciato();
+      }
+    }
     if (stato.drago_sconfitto) {
       for (const palla of palle_fuoco) rimuovi_palla(palla);
     } else if (!fermo) {
-      if (Math.abs(meg.geometry.x - drago_x) > PORTATA_FUOCO) {
+      const in_portata = Math.abs(meg.geometry.x - drago_x) <= PORTATA_FUOCO;
+      if (!in_portata) {
         recupero_fuoco = INTERVALLO_FUOCO;
+        era_in_portata = false;
       } else {
+        if (!era_in_portata) recupero_fuoco = 0;
+        era_in_portata = true;
         recupero_fuoco -= delta;
         if (recupero_fuoco <= 0) {
           spara_palla();
@@ -96,13 +137,17 @@ export function crea_drago(s, { config, meg, stato, blocchi, bloccato, on_colpit
 
     if (bloccato() || !vicino) return "";
     if (stato.drago_sconfitto) return "Il drago è sazio! Raggiungi l’arrivo.";
+    if (budino_lanciato) return "Il budino vola verso il drago!";
     return stato.cotto
-      ? "Premi E per far mangiare il budino al drago"
+      ? "Premi E per lanciare il budino al drago"
       : "Il drago può essere sconfitto solo con il budino cucinato";
   }
 
   return {
     aggiorna,
-    distruggi() { for (const palla of palle_fuoco) rimuovi_palla(palla); },
+    distruggi() {
+      for (const palla of palle_fuoco) rimuovi_palla(palla);
+      rimuovi_budino_lanciato();
+    },
   };
 }

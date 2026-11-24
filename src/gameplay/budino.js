@@ -1,6 +1,6 @@
 import { LARGHEZZA } from "../config.js";
 import { testo, fissa } from "./grafica.js";
-import { crea_drago } from "./drago.js?v=drago-1";
+import { crea_drago } from "./drago.js?v=drago-4";
 
 export const INGREDIENTI = [
   { id: "pane", nome: "Pane", zona: 0 },
@@ -88,7 +88,9 @@ function prepara_icone(s) {
   }
 }
 
-export function crea_missione_budino(s, { stato, config, meg, blocchi, bloccato, on_colpito }) {
+export function crea_missione_budino(s, {
+  stato, config, meg, blocchi, bloccato, on_colpito, on_lancia_budino,
+}) {
   prepara_icone(s);
   const forno_x = config.zone[3].inizio + 200;
   const drago_x = config.zone[3].fine - 550;
@@ -134,7 +136,8 @@ export function crea_missione_budino(s, { stato, config, meg, blocchi, bloccato,
     const texture_budino = stato.cotto ? "ricetta-budino-cotto" : "ricetta-budino-crudo";
     if (icona_budino.texture.key !== texture_budino) icona_budino.setTexture(texture_budino);
     icona_budino.setVisible(budino_creato);
-    const messaggio = stato.drago_sconfitto ? "Drago sconfitto!" : stato.cotto ? "Budino pronto · offri al drago"
+    const messaggio = stato.drago_sconfitto ? "Drago sconfitto!" : stato.cotto
+      ? drago ? "Budino pronto · offri al drago" : "Budino pronto"
       : stato.impasto_pronto ? "Ingredienti inseriti · cuoci al forno (zona 4)"
         : stato.raccolti.size === INGREDIENTI.length ? "Ingredienti pronti · forno dopo il mercato (zona 4)" : "";
     if (messaggio !== messaggio_precedente) {
@@ -165,9 +168,10 @@ export function crea_missione_budino(s, { stato, config, meg, blocchi, bloccato,
   s.add.rectangle(forno_x, suolo - 72, 94, 10, 0xb99a7c);
   testo(s, forno_x, suolo - 145, "Forno · E", 19);
   const budino = s.add.image(forno_x, suolo - 98, "ricetta-budino-crudo").setVisible(false);
-  const drago = crea_drago(s, {
-    config, meg, stato, blocchi, bloccato, on_colpito,
+  const drago = config.drago_attivo === false ? null : crea_drago(s, {
+    config, meg, stato, blocchi, bloccato, on_colpito, on_lancia_budino,
   });
+  const puo_completare = () => stato.cotto && (!drago || stato.drago_sconfitto);
   const invito = fisso(testo(s, LARGHEZZA / 2, 650, "", 18));
   invito.ph_obj.setBackgroundColor("#1D2938").setPadding(12, 8);
   invito.visibility.hidden = true;
@@ -177,23 +181,27 @@ export function crea_missione_budino(s, { stato, config, meg, blocchi, bloccato,
     aggiorna_hud();
     if (bloccato()) {
       invito.visibility.hidden = true;
-      drago.aggiorna(delta);
+      drago?.aggiorna(delta);
       return;
     }
     const vicino = x => Math.abs(meg.geometry.x - x) < 135 && Math.abs(meg.geometry.y - (suolo - 54)) < 110;
     let messaggio = "";
     const premuto = PP.interactive.kb.is_key_just_down(s, PP.key_codes.E);
-    const messaggio_drago = drago.aggiorna(delta, premuto);
+    const messaggio_drago = drago?.aggiorna(delta, premuto) ?? "";
     if (vicino(forno_x)) {
-      messaggio = stato.cotto ? "Il budino è pronto: fallo mangiare al drago per sconfiggerlo!"
+      messaggio = stato.cotto ? drago
+        ? "Il budino è pronto: fallo mangiare al drago per sconfiggerlo!"
+        : "Il budino è pronto."
         : stato.impasto_pronto ? "Premi E per cuocere il budino"
           : stato.raccolti.size === INGREDIENTI.length ? "Premi E per inserire gli ingredienti nel forno"
             : "Per cucinare servono pane, latte e uovo";
       if (premuto && (stato.prepara() || stato.cucina())) aggiorna_hud();
     } else if (messaggio_drago) {
       messaggio = messaggio_drago;
-    } else if (meg.geometry.x > config.arrivo - 180 && !stato.drago_sconfitto) {
-      messaggio = "Prima devi cucinare il budino e dopo farlo mangiare al drago";
+    } else if (meg.geometry.x > config.arrivo - 180 && !puo_completare()) {
+      messaggio = drago
+        ? "Prima devi cucinare il budino e dopo farlo mangiare al drago"
+        : "Prima devi cucinare il budino";
     }
     invito.visibility.hidden = !messaggio;
     if (messaggio !== invito_precedente) {
@@ -206,7 +214,7 @@ export function crea_missione_budino(s, { stato, config, meg, blocchi, bloccato,
   aggiorna_hud();
   return {
     aggiorna,
-    puo_completare: () => stato.cotto && stato.raccolti.size === INGREDIENTI.length && stato.drago_sconfitto,
-    distruggi: drago.distruggi,
+    puo_completare: () => stato.raccolti.size === INGREDIENTI.length && puo_completare(),
+    distruggi: () => drago?.distruggi(),
   };
 }
