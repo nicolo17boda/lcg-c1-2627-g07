@@ -1,3 +1,4 @@
+import { crea_stato_budino, crea_missione_budino } from "./budino.js";
 import { LARGHEZZA, ALTEZZA } from "../config.js";
 import {
   aggiungi_moneta, monete_totali, padella_argentata_acquistata, rimuovi_monete,
@@ -9,7 +10,7 @@ import { crea_abilita_meg } from "./abilita_meg.js?v=padella-argentata-1";
 import { crea_nemici, scegli_topi_grandi } from "./nemici.js";
 import { crea_monete } from "./monete.js";
 import { crea_dialogo } from "./dialogo.js";
-import { crea_hud, crea_game_over } from "./hud.js?v=coordinate-1";
+import { crea_hud, crea_game_over } from "./hud.js?v=coordinate-integrate-4";
 import { prepara_skin_terreni, disegna_terreno } from "./terreni.js";
 import { crea_skin_personaggio } from "./personaggi.js";
 import { apri_pausa } from "../scenes/pausa.js";
@@ -23,7 +24,8 @@ export function registra_livello(config) {
     monete: MONETE_ESPLORAZIONE = [], pattuglie: PATTUGLIE_TOPI = [],
   } = config;
   let meg, nemici, abilita, hud, dialogo, monete_visive;
-  let skin_meg, arcieri;
+  let skin_meg, arcieri, missione_budino;
+  let stato_budino = null;
   let sfondi_zone = [];
   let partenza = config.partenza;
   let vite = VITE_MAX;
@@ -150,6 +152,8 @@ export function registra_livello(config) {
       crea_amico(s);
     }
     crea_esplorazione(s);
+    stato_budino ??= crea_stato_budino(config);
+    missione_budino = crea_missione_budino(s, { stato: stato_budino, config, meg, bloccato });
   }
 
   function crea_esplorazione(s) {
@@ -187,6 +191,7 @@ export function registra_livello(config) {
   }
 
   function azzera_esplorazione() {
+    stato_budino = null;
     topi_grandi = null;
     reliquie_raccolte.clear();
     monete_esplorazione_raccolte.clear();
@@ -322,7 +327,7 @@ export function registra_livello(config) {
   }
 
   function completa() {
-    if (transizione || game_over) return;
+    if (transizione || game_over || !missione_budino?.puo_completare()) return;
     abilita.termina();
     // Le monete del tentativo diventano definitive soltanto raggiungendo l'arrivo.
     monete_tentativo = 0;
@@ -396,6 +401,7 @@ export function registra_livello(config) {
     monete_visive?.aggiorna();
     abilita?.aggiorna_skin();
     arcieri?.aggiorna(1000 / PP.game.get_physics_fps(s));
+    missione_budino?.aggiorna();
     if (transizione || game_over) return;
     nemici.aggiorna();
     piedi_meg_precedenti = meg.geometry.y + A_MEG / 2;

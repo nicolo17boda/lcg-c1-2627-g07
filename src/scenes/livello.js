@@ -1,4 +1,4 @@
-import { registra_livello } from "../gameplay/livello.js?v=padella-argentata-1";
+import { registra_livello } from "../gameplay/livello.js?v=budino-1";
 
 // Un unico livello continuo: ogni zona occupa 5.000 px.
 const SPAZIO_INIZIALE = 300;
@@ -42,9 +42,16 @@ const PIATTAFORME = [
   [16473, 300, 220], [16844, 490, 200], [17323, 370, 100],
   [17810, 490, 220],
 ];
-const ARCIERI = [];
+const ARCIERI = [
+  [5620], [6858, 250], [8031, 300], [9480, 324], [9888, 400],
+];
 const CHECKPOINT = [2060, 4969, 7060, 9960, 12060, 14960, 17060,];
-const PATTUGLIE_TOPI = [];
+const PATTUGLIE_TOPI = [
+  [530, 790, { grande: false, velocita: 0.65 }],
+  [3100, 3240, { grande: true, velocita: 0.7 }],
+  [980, 1100, { quota: 400, grande: false, velocita: 0.55 }],
+  [1920, 2020, { quota: 400, grande: true, velocita: 0.45 }],
+];
 const RELIQUIE = [];
 const MONETE_ESPLORAZIONE = [];
 

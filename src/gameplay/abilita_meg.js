@@ -21,10 +21,7 @@ export function crea_abilita_meg(s, {
   let pelle_argentata_applicata = padella_argentata();
   function crea_skin_padella(x, y, lunghezza, direzione) {
     const skin = PP.assets.image.add(s, immagine_padella, x, y, 0.5, 0.5);
-    // Tinta provvisoria finché non è disponibile la grafica argentata.
     if (pelle_argentata_applicata) skin.ph_obj.setTint(TINTA_PADELLA_ARGENTATA);
-    // Il disegno misura circa 990 px in verticale: ruotato, il manico
-    // punta verso Meg e la testa della padella verso il bersaglio.
     skin.geometry.scale_x = lunghezza / 990;
     skin.geometry.scale_y = lunghezza / 990;
     skin.geometry.angle = direzione > 0 ? 90 : 270;

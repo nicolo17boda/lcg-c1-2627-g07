@@ -69,11 +69,11 @@ export function crea_hud(s, { immagini, pausa }) {
   let testo_coordinate, coordinate_precedenti;
   function crea_elementi(s) {
     elementi_hud = [];
-    // Due righe distinte: risorse sopra, abilità in due colonne sotto.
-    const pannello = PP.shapes.rectangle_add(s, 172, 88,
-      312, 144, COLORI.sfondo, 0.96);
-    const accento = PP.shapes.rectangle_add(s, 18, 88,
-      4, 144, COLORI.meg, 1);
+    // Risorse, abilità e una riga compatta dedicata alle coordinate.
+    const pannello = PP.shapes.rectangle_add(s, 172, 108,
+      312, 184, COLORI.sfondo, 0.96);
+    const accento = PP.shapes.rectangle_add(s, 18, 108,
+      4, 184, COLORI.meg, 1);
     const separatore = PP.shapes.rectangle_add(s, 174, 42,
       1, 26, COLORI.terreno, 0.8);
     const divisore = PP.shapes.rectangle_add(s, 174, 68,
@@ -108,6 +108,10 @@ export function crea_hud(s, { immagini, pausa }) {
     icona_moneta.geometry.scale_y = 0.1;
     testo_monete = testo(s, 270, 42, "", 24);
     elementi_hud.push(icona_moneta, testo_monete);
+    const divisore_coordinate = PP.shapes.rectangle_add(s, 174, 164,
+      272, 1, COLORI.terreno, 0.8);
+    testo_coordinate = testo(s, 172, 182, "", 13);
+    elementi_hud.push(divisore_coordinate, testo_coordinate);
     for (const elemento of elementi_hud) fissa_hud(elemento);
     const bottone = PP.shapes.rectangle_add(s, LARGHEZZA - 105, 45,
       170, 52, COLORI.terreno, 1);
@@ -115,11 +119,6 @@ export function crea_hud(s, { immagini, pausa }) {
     const etichetta_menu = adatta_testo(
       testo(s, LARGHEZZA - 105, 45, "Pausa [Esc]", 18), 146, 24);
     fissa_hud(etichetta_menu);
-    const pannello_coordinate = PP.shapes.rectangle_add(s, LARGHEZZA - 130, 100,
-      220, 34, COLORI.sfondo, 0.96);
-    testo_coordinate = testo(s, LARGHEZZA - 130, 100, "", 16);
-    fissa_hud(pannello_coordinate);
-    fissa_hud(testo_coordinate);
     PP.interactive.mouse.add(bottone, "pointerdown", pausa);
     PP.interactive.mouse.add(bottone, "pointerover", () => {
       bottone.visibility.alpha = 0.7;
